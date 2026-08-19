@@ -22,13 +22,19 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // Get all users.
+    // =========================================================
+    // GET ALL USERS
+    // =========================================================
+
     public List<User> getAllUsers() {
 
         return userStorageService.getAllUsers();
     }
 
-    // Find a user by ID.
+    // =========================================================
+    // FIND USER BY ID
+    // =========================================================
+
     public User findUserById(Long id) {
 
         List<User> users =
@@ -46,8 +52,15 @@ public class UserService {
         return null;
     }
 
-    // Find a user by email.
+    // =========================================================
+    // FIND USER BY EMAIL
+    // =========================================================
+
     public User findUserByEmail(String email) {
+
+        if (email == null) {
+            return null;
+        }
 
         List<User> users =
                 userStorageService.getAllUsers();
@@ -55,7 +68,8 @@ public class UserService {
         for (User user : users) {
 
             if (user.getEmail() != null
-                    && user.getEmail().equalsIgnoreCase(email)) {
+                    && user.getEmail()
+                    .equalsIgnoreCase(email.trim())) {
 
                 return user;
             }
@@ -64,13 +78,24 @@ public class UserService {
         return null;
     }
 
-    // Create a new user/member.
+    // =========================================================
+    // CREATE USER
+    // =========================================================
+
     public User createUser(
             String name,
             String email,
             String password,
             Role role
     ) {
+
+        // Validate the input.
+        validateUserData(
+                name,
+                email,
+                password,
+                role
+        );
 
         // Prevent duplicate email addresses.
         if (findUserByEmail(email) != null) {
@@ -91,7 +116,8 @@ public class UserService {
             if (user.getId() != null
                     && user.getId() >= nextId) {
 
-                nextId = user.getId() + 1;
+                nextId =
+                        user.getId() + 1;
             }
         }
 
@@ -100,23 +126,163 @@ public class UserService {
                 passwordEncoder.encode(password);
 
         // Create the user.
-        User newUser = new User(
-                nextId,
-                name,
-                email,
-                encodedPassword,
-                role
-        );
+        User newUser =
+                new User(
+                        nextId,
+                        name.trim(),
+                        email.trim(),
+                        encodedPassword,
+                        role
+                );
 
-        // Save the user.
+        // Add the user.
         users.add(newUser);
 
+        // Save users.
         userStorageService.saveAllUsers(users);
 
         return newUser;
     }
 
-    // Check whether a raw password matches the stored hash.
+    // =========================================================
+    // UPDATE USER
+    // =========================================================
+
+    public User updateUser(
+            Long id,
+            String name,
+            String email,
+            String password,
+            Role role
+    ) {
+
+        // Find the existing user.
+        User existingUser =
+                findUserById(id);
+
+        if (existingUser == null) {
+
+            return null;
+        }
+
+        // Validate name.
+        if (name == null
+                || name.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Name cannot be empty"
+            );
+        }
+
+        // Validate email.
+        validateEmail(email);
+
+        // Role is required.
+        if (role == null) {
+
+            throw new IllegalArgumentException(
+                    "Role is required"
+            );
+        }
+
+        // Check whether another user already
+        // uses this email.
+        User userWithSameEmail =
+                findUserByEmail(email);
+
+        if (userWithSameEmail != null
+                && !userWithSameEmail
+                .getId()
+                .equals(id)) {
+
+            throw new IllegalArgumentException(
+                    "A user with this email already exists"
+            );
+        }
+
+        // Update name.
+        existingUser.setName(
+                name.trim()
+        );
+
+        // Update email.
+        existingUser.setEmail(
+                email.trim()
+        );
+
+        // Update role.
+        existingUser.setRole(role);
+
+        // Password is optional during update.
+        //
+        // If password is provided, replace it.
+        // If password is empty/null, keep the old password.
+        if (password != null
+                && !password.trim().isEmpty()) {
+
+            validatePassword(password);
+
+            existingUser.setPassword(
+                    passwordEncoder.encode(password)
+            );
+        }
+
+        // Save updated users.
+        List<User> users =
+                userStorageService.getAllUsers();
+
+        for (int i = 0;
+             i < users.size();
+             i++) {
+
+            if (users.get(i).getId()
+                    .equals(id)) {
+
+                users.set(
+                        i,
+                        existingUser
+                );
+
+                break;
+            }
+        }
+
+        userStorageService.saveAllUsers(users);
+
+        return existingUser;
+    }
+
+    // =========================================================
+    // DELETE USER
+    // =========================================================
+
+    public boolean deleteUser(Long id) {
+
+        List<User> users =
+                userStorageService.getAllUsers();
+
+        boolean removed =
+                users.removeIf(
+                        user ->
+                                user.getId() != null
+                                        && user.getId()
+                                        .equals(id)
+                );
+
+        if (!removed) {
+
+            return false;
+        }
+
+        userStorageService.saveAllUsers(users);
+
+        return true;
+    }
+
+    // =========================================================
+    // PASSWORD CHECK
+    // =========================================================
+
     public boolean checkPassword(
             String rawPassword,
             String encodedPassword
@@ -126,5 +292,81 @@ public class UserService {
                 rawPassword,
                 encodedPassword
         );
+    }
+
+    // =========================================================
+    // VALIDATION
+    // =========================================================
+
+    private void validateUserData(
+            String name,
+            String email,
+            String password,
+            Role role
+    ) {
+
+        // Validate name.
+        if (name == null
+                || name.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Name cannot be empty"
+            );
+        }
+
+        // Validate email.
+        validateEmail(email);
+
+        // Validate password.
+        validatePassword(password);
+
+        // Validate role.
+        if (role == null) {
+
+            throw new IllegalArgumentException(
+                    "Role is required"
+            );
+        }
+    }
+
+    // Validate email format.
+    private void validateEmail(String email) {
+
+        if (email == null
+                || email.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Email cannot be empty"
+            );
+        }
+
+        String emailRegex =
+                "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+
+        if (!email.trim().matches(emailRegex)) {
+
+            throw new IllegalArgumentException(
+                    "Invalid email format"
+            );
+        }
+    }
+
+    // Validate password.
+    private void validatePassword(String password) {
+
+        if (password == null
+                || password.trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Password cannot be empty"
+            );
+        }
+
+        if (password.length() < 6) {
+
+            throw new IllegalArgumentException(
+                    "Password must contain at least 6 characters"
+            );
+        }
     }
 }

@@ -2,6 +2,18 @@
   "id" : 1,
   "name" : "Rahul Kumar",
   "email" : "rahul@gmail.com",
-  "password" : "test123",
+  "password" : "$2a$10$uzF164O6bFSk..8uFfU33.nBwpYZHuFTU2m4GREYdRyseGtjIMZkO",
+  "role" : "USER"
+}, {
+  "id" : 2,
+  "name" : "Library Admin",
+  "email" : "admin@library.com",
+  "password" : "$2a$10$gmTqheqWb3ftUjUHXFny8evEglIog/9j76HvkHxrissOIXmK7l1Si",
+  "role" : "ADMIN"
+}, {
+  "id" : 3,
+  "name" : "Aditya Singh",
+  "email" : "aditya@gmail.com",
+  "password" : "$2a$10$dXzT0jq0lXgTn0sjuwyqY.uBiipaDu7zyBmhFAcYQfObSVr/CJ66a",
   "role" : "USER"
 } ]

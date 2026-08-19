@@ -1,9 +1,12 @@
 package com.library.Aditya_Lib_Fine_Calc.borrowing.controller;
 
+import com.library.Aditya_Lib_Fine_Calc.borrowing.dto.BorrowBookRequest;
 import com.library.Aditya_Lib_Fine_Calc.borrowing.model.Borrowing;
 import com.library.Aditya_Lib_Fine_Calc.borrowing.service.BorrowingService;
-import org.springframework.http.HttpStatus;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,70 +17,109 @@ public class BorrowingController {
 
     private final BorrowingService borrowingService;
 
-    public BorrowingController(
-            BorrowingService borrowingService
-    ) {
+    public BorrowingController(BorrowingService borrowingService) {
         this.borrowingService = borrowingService;
     }
 
-    // Get all borrowing records.
+    // =========================================================
+    // GET ALL / USER'S BORROWINGS
+    // =========================================================
+    //
+    // ADMIN  -> sees all borrowings.
+    // USER   -> sees only their own borrowings.
+    //
     @GetMapping
-    public ResponseEntity<List<Borrowing>> getAllBorrowings() {
+    public ResponseEntity<List<Borrowing>> getBorrowings(
+            Authentication authentication
+    ) {
 
+        // Check whether the logged-in user is an Admin.
+        boolean isAdmin =
+                authentication.getAuthorities()
+                        .stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .anyMatch("ROLE_ADMIN"::equals);
+
+        // Admin can see all borrowings.
+        if (isAdmin) {
+
+            return ResponseEntity.ok(
+                    borrowingService.getAllBorrowings()
+            );
+        }
+
+        // Get the logged-in user's ID from the JWT.
+        Long userId =
+                (Long) authentication.getCredentials();
+
+        // Member can see only their own borrowings.
         return ResponseEntity.ok(
-                borrowingService.getAllBorrowings()
+                borrowingService.getBorrowingsByUserId(userId)
         );
     }
 
-    // Get one borrowing by ID.
-    @GetMapping("/{id}")
-    public ResponseEntity<Borrowing> getBorrowingById(
-            @PathVariable Long id
-    ) {
-
-        Borrowing borrowing =
-                borrowingService.findBorrowingById(id);
-
-        if (borrowing == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(borrowing);
-    }
-
-    // Borrow a book.
+    // =========================================================
+    // BORROW A BOOK
+    // =========================================================
+    //
+    // The userId is NOT received from the request.
+    // It is taken from the logged-in user's JWT.
+    //
+    // Request:
+    //
+    // POST /api/borrowings
+    //
+    // {
+    //     "bookId": 1
+    // }
+    //
     @PostMapping
     public ResponseEntity<Borrowing> borrowBook(
-            @RequestBody BorrowBookRequest request
+            @RequestBody BorrowBookRequest request,
+            Authentication authentication
     ) {
 
+        // Get the logged-in user's ID from the JWT.
+        Long userId =
+                (Long) authentication.getCredentials();
+
+        // Borrow the book for the logged-in user.
         Borrowing borrowing =
                 borrowingService.borrowBook(
-                        request.userId(),
+                        userId,
                         request.bookId()
                 );
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(borrowing);
-    }
-
-    // Return a book.
-    @PutMapping("/{id}/return")
-    public ResponseEntity<Borrowing> returnBook(
-            @PathVariable Long id
-    ) {
-
-        Borrowing borrowing =
-                borrowingService.returnBook(id);
-
         return ResponseEntity.ok(borrowing);
     }
 
-    // Request body for borrowing a book.
-    public record BorrowBookRequest(
-            Long userId,
-            Long bookId
+    // =========================================================
+    // RETURN A BOOK
+    // =========================================================
+    //
+    // The borrowing ID identifies which borrowing is being
+    // returned.
+    //
+    // The service should verify that the borrowing belongs
+    // to the logged-in user.
+    //
+    @PutMapping("/{id}/return")
+    public ResponseEntity<Borrowing> returnBook(
+            @PathVariable Long id,
+            Authentication authentication
     ) {
+
+        // Get the logged-in user's ID.
+        Long userId =
+                (Long) authentication.getCredentials();
+
+        // Return the book.
+        Borrowing borrowing =
+                borrowingService.returnBook(
+                        id,
+                        userId
+                );
+
+        return ResponseEntity.ok(borrowing);
     }
 }

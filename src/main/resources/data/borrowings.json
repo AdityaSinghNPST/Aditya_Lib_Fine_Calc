@@ -6,4 +6,12 @@
   "dueDate" : "2026-08-18",
   "returnDate" : "2026-08-19",
   "status" : "RETURNED"
+}, {
+  "id" : 2,
+  "bookId" : 1,
+  "userId" : 3,
+  "issueDate" : "2026-08-19",
+  "dueDate" : "2026-09-02",
+  "returnDate" : "2026-08-19",
+  "status" : "RETURNED"
 } ]

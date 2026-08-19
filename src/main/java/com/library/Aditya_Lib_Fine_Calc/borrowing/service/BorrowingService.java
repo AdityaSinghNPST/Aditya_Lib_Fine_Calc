@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -41,11 +42,20 @@ public class BorrowingService {
         this.settingsService = settingsService;
     }
 
+    // =========================================================
+    // GET ALL BORROWINGS
+    // =========================================================
+
     // Get all borrowing records.
+    // Admin will use this method.
     public List<Borrowing> getAllBorrowings() {
 
         return borrowingStorageService.getAllBorrowings();
     }
+
+    // =========================================================
+    // FIND BORROWING BY ID
+    // =========================================================
 
     // Find a borrowing using its ID.
     public Borrowing findBorrowingById(Long id) {
@@ -65,6 +75,36 @@ public class BorrowingService {
         return null;
     }
 
+    // =========================================================
+    // GET BORROWINGS FOR ONE USER
+    // =========================================================
+
+    // Get only the borrowings belonging to a particular user.
+    // This is used for normal Members.
+    public List<Borrowing> getBorrowingsByUserId(Long userId) {
+
+        List<Borrowing> allBorrowings =
+                borrowingStorageService.getAllBorrowings();
+
+        List<Borrowing> userBorrowings =
+                new ArrayList<>();
+
+        for (Borrowing borrowing : allBorrowings) {
+
+            if (borrowing.getUserId() != null
+                    && borrowing.getUserId().equals(userId)) {
+
+                userBorrowings.add(borrowing);
+            }
+        }
+
+        return userBorrowings;
+    }
+
+    // =========================================================
+    // BORROW BOOK
+    // =========================================================
+
     // Borrow a book for a member.
     public Borrowing borrowBook(
             Long userId,
@@ -72,7 +112,8 @@ public class BorrowingService {
     ) {
 
         // Check that the user exists.
-        User user = userService.findUserById(userId);
+        User user =
+                userService.findUserById(userId);
 
         if (user == null) {
 
@@ -82,7 +123,8 @@ public class BorrowingService {
         }
 
         // Check that the book exists.
-        Book book = bookService.findBookById(bookId);
+        Book book =
+                bookService.findBookById(bookId);
 
         if (book == null) {
 
@@ -103,7 +145,7 @@ public class BorrowingService {
         List<Borrowing> borrowings =
                 borrowingStorageService.getAllBorrowings();
 
-        // Generate the next ID.
+        // Generate the next borrowing ID.
         long nextId = 1;
 
         for (Borrowing borrowing : borrowings) {
@@ -111,12 +153,14 @@ public class BorrowingService {
             if (borrowing.getId() != null
                     && borrowing.getId() >= nextId) {
 
-                nextId = borrowing.getId() + 1;
+                nextId =
+                        borrowing.getId() + 1;
             }
         }
 
         // The book is borrowed today.
-        LocalDate issueDate = LocalDate.now();
+        LocalDate issueDate =
+                LocalDate.now();
 
         // Get borrowing period configured by Admin.
         int borrowingPeriodDays =
@@ -124,18 +168,21 @@ public class BorrowingService {
 
         // Calculate the due date.
         LocalDate dueDate =
-                issueDate.plusDays(borrowingPeriodDays);
+                issueDate.plusDays(
+                        borrowingPeriodDays
+                );
 
         // Create the borrowing record.
-        Borrowing borrowing = new Borrowing(
-                nextId,
-                bookId,
-                userId,
-                issueDate,
-                dueDate,
-                null,
-                BorrowingStatus.BORROWED
-        );
+        Borrowing borrowing =
+                new Borrowing(
+                        nextId,
+                        bookId,
+                        userId,
+                        issueDate,
+                        dueDate,
+                        null,
+                        BorrowingStatus.BORROWED
+                );
 
         // Add borrowing to the list.
         borrowings.add(borrowing);
@@ -154,8 +201,21 @@ public class BorrowingService {
         return borrowing;
     }
 
+    // =========================================================
+    // RETURN BOOK
+    // =========================================================
+
     // Return a borrowed book.
-    public Borrowing returnBook(Long borrowingId) {
+    //
+    // IMPORTANT:
+    // userId comes from the logged-in user's JWT.
+    //
+    // This prevents one Member from returning another
+    // Member's borrowed book.
+    public Borrowing returnBook(
+            Long borrowingId,
+            Long userId
+    ) {
 
         // Find the borrowing.
         Borrowing borrowing =
@@ -165,6 +225,16 @@ public class BorrowingService {
 
             throw new IllegalArgumentException(
                     "Borrowing not found"
+            );
+        }
+
+        // Check whether this borrowing belongs
+        // to the logged-in user.
+        if (borrowing.getUserId() == null
+                || !borrowing.getUserId().equals(userId)) {
+
+            throw new IllegalStateException(
+                    "You cannot return a book borrowed by another user"
             );
         }
 
@@ -178,12 +248,17 @@ public class BorrowingService {
         }
 
         // Record today's date.
-        LocalDate returnDate = LocalDate.now();
+        LocalDate returnDate =
+                LocalDate.now();
 
-        borrowing.setReturnDate(returnDate);
+        borrowing.setReturnDate(
+                returnDate
+        );
 
         // Check if the book is overdue.
-        if (returnDate.isAfter(borrowing.getDueDate())) {
+        if (returnDate.isAfter(
+                borrowing.getDueDate()
+        )) {
 
             long overdueDays =
                     ChronoUnit.DAYS.between(
@@ -209,12 +284,17 @@ public class BorrowingService {
                 borrowingStorageService.getAllBorrowings();
 
         // Update the borrowing record.
-        for (int i = 0; i < borrowings.size(); i++) {
+        for (int i = 0;
+             i < borrowings.size();
+             i++) {
 
             if (borrowings.get(i).getId()
                     .equals(borrowing.getId())) {
 
-                borrowings.set(i, borrowing);
+                borrowings.set(
+                        i,
+                        borrowing
+                );
 
                 break;
             }

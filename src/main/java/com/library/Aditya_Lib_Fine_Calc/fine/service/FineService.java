@@ -2,6 +2,7 @@ package com.library.Aditya_Lib_Fine_Calc.fine.service;
 
 import com.library.Aditya_Lib_Fine_Calc.fine.model.Fine;
 import com.library.Aditya_Lib_Fine_Calc.settings.service.SettingsService;
+
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -22,13 +23,25 @@ public class FineService {
         this.settingsService = settingsService;
     }
 
+    // =========================================================
+    // GET ALL FINES
+    // =========================================================
+
     // Get all fines.
+    // This is used by the Admin.
     public List<Fine> getAllFines() {
 
         return fineStorageService.getAllFines();
     }
 
-    // Get fines belonging to one member.
+    // =========================================================
+    // GET FINES FOR ONE USER
+    // =========================================================
+
+    // Get fines belonging to one Member.
+    //
+    // The userId is obtained from the logged-in user's JWT
+    // by the controller.
     public List<Fine> getFinesByUserId(Long userId) {
 
         List<Fine> allFines =
@@ -37,8 +50,10 @@ public class FineService {
         List<Fine> userFines =
                 new ArrayList<>();
 
+        // Check every fine.
         for (Fine fine : allFines) {
 
+            // Add only fines belonging to this user.
             if (fine.getUserId() != null
                     && fine.getUserId().equals(userId)) {
 
@@ -48,6 +63,10 @@ public class FineService {
 
         return userFines;
     }
+
+    // =========================================================
+    // CREATE FINE
+    // =========================================================
 
     // Create a fine after a late book return.
     public Fine createFine(
@@ -59,7 +78,10 @@ public class FineService {
         List<Fine> fines =
                 fineStorageService.getAllFines();
 
-        // Prevent duplicate fines for the same borrowing.
+        // -----------------------------------------------------
+        // Prevent duplicate fines.
+        // -----------------------------------------------------
+
         for (Fine existingFine : fines) {
 
             if (existingFine.getBorrowingId() != null
@@ -70,7 +92,10 @@ public class FineService {
             }
         }
 
+        // -----------------------------------------------------
         // Generate the next fine ID.
+        // -----------------------------------------------------
+
         long nextId = 1;
 
         for (Fine fine : fines) {
@@ -78,26 +103,37 @@ public class FineService {
             if (fine.getId() != null
                     && fine.getId() >= nextId) {
 
-                nextId = fine.getId() + 1;
+                nextId =
+                        fine.getId() + 1;
             }
         }
 
+        // -----------------------------------------------------
         // Get the fine rate configured by Admin.
+        // -----------------------------------------------------
+
         double finePerDay =
                 settingsService.getFinePerDay();
 
-        // Calculate the fine.
+        // -----------------------------------------------------
+        // Calculate fine amount.
+        // -----------------------------------------------------
+
         double amount =
                 overdueDays * finePerDay;
 
+        // -----------------------------------------------------
         // Create the fine.
-        Fine fine = new Fine(
-                nextId,
-                borrowingId,
-                userId,
-                overdueDays,
-                amount
-        );
+        // -----------------------------------------------------
+
+        Fine fine =
+                new Fine(
+                        nextId,
+                        borrowingId,
+                        userId,
+                        overdueDays,
+                        amount
+                );
 
         // Add the fine.
         fines.add(fine);

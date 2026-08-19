@@ -14,13 +14,17 @@ public class BookService {
         this.bookStorageService = bookStorageService;
     }
 
+    // Get all books.
     public List<Book> getAllBooks() {
+
         return bookStorageService.getAllBooks();
     }
 
+    // Find a book using its ID.
     public Book findBookById(Long id) {
 
-        List<Book> books = bookStorageService.getAllBooks();
+        List<Book> books =
+                bookStorageService.getAllBooks();
 
         for (Book book : books) {
 
@@ -34,6 +38,7 @@ public class BookService {
         return null;
     }
 
+    // Create a new book.
     public Book createBook(
             String title,
             String author,
@@ -43,24 +48,20 @@ public class BookService {
         List<Book> books =
                 bookStorageService.getAllBooks();
 
+        // Start IDs from 1.
         long nextId = 1;
 
-        if (!books.isEmpty()) {
+        // Find the highest existing ID.
+        for (Book book : books) {
 
-            long maxId = 0;
+            if (book.getId() != null
+                    && book.getId() >= nextId) {
 
-            for (Book book : books) {
-
-                if (book.getId() != null
-                        && book.getId() > maxId) {
-
-                    maxId = book.getId();
-                }
+                nextId = book.getId() + 1;
             }
-
-            nextId = maxId + 1;
         }
 
+        // Create the new book.
         Book newBook = new Book(
                 nextId,
                 title,
@@ -69,10 +70,41 @@ public class BookService {
                 true
         );
 
+        // Add the book to the list.
         books.add(newBook);
 
+        // Save the updated list.
         bookStorageService.saveAllBooks(books);
 
         return newBook;
+    }
+
+    // Update an existing book.
+    public Book updateBook(Book updatedBook) {
+
+        List<Book> books =
+                bookStorageService.getAllBooks();
+
+        // Search for the book that needs to be updated.
+        for (int i = 0; i < books.size(); i++) {
+
+            Book existingBook = books.get(i);
+
+            // Compare the IDs.
+            if (existingBook.getId() != null
+                    && existingBook.getId().equals(updatedBook.getId())) {
+
+                // Replace the old book with the updated book.
+                books.set(i, updatedBook);
+
+                // Save the updated list to books.json.
+                bookStorageService.saveAllBooks(books);
+
+                return updatedBook;
+            }
+        }
+
+        // Book was not found.
+        return null;
     }
 }

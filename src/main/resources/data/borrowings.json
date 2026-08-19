@@ -1,0 +1,9 @@
+[ {
+  "id" : 1,
+  "bookId" : 1,
+  "userId" : 1,
+  "issueDate" : "2026-08-10",
+  "dueDate" : "2026-08-18",
+  "returnDate" : "2026-08-19",
+  "status" : "RETURNED"
+} ]

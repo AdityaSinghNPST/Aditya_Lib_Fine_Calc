@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "id": 1,
+    "borrowingId": 1,
+    "userId": 1,
+    "overdueDays": 1,
+    "amount": 15.0
+  }
+]

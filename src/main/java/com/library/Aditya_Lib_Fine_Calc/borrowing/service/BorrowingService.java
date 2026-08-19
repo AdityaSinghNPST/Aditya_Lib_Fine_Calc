@@ -1,0 +1,243 @@
+package com.library.Aditya_Lib_Fine_Calc.borrowing.service;
+
+import com.library.Aditya_Lib_Fine_Calc.book.model.Book;
+import com.library.Aditya_Lib_Fine_Calc.book.service.BookService;
+import com.library.Aditya_Lib_Fine_Calc.borrowing.model.Borrowing;
+import com.library.Aditya_Lib_Fine_Calc.borrowing.model.BorrowingStatus;
+import com.library.Aditya_Lib_Fine_Calc.fine.service.FineService;
+import com.library.Aditya_Lib_Fine_Calc.settings.service.SettingsService;
+import com.library.Aditya_Lib_Fine_Calc.user.model.User;
+import com.library.Aditya_Lib_Fine_Calc.user.service.UserService;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+
+@Service
+public class BorrowingService {
+
+    private final BorrowingStorageService borrowingStorageService;
+
+    private final BookService bookService;
+
+    private final UserService userService;
+
+    private final FineService fineService;
+
+    private final SettingsService settingsService;
+
+    public BorrowingService(
+            BorrowingStorageService borrowingStorageService,
+            BookService bookService,
+            UserService userService,
+            FineService fineService,
+            SettingsService settingsService
+    ) {
+        this.borrowingStorageService = borrowingStorageService;
+        this.bookService = bookService;
+        this.userService = userService;
+        this.fineService = fineService;
+        this.settingsService = settingsService;
+    }
+
+    // Get all borrowing records.
+    public List<Borrowing> getAllBorrowings() {
+
+        return borrowingStorageService.getAllBorrowings();
+    }
+
+    // Find a borrowing using its ID.
+    public Borrowing findBorrowingById(Long id) {
+
+        List<Borrowing> borrowings =
+                borrowingStorageService.getAllBorrowings();
+
+        for (Borrowing borrowing : borrowings) {
+
+            if (borrowing.getId() != null
+                    && borrowing.getId().equals(id)) {
+
+                return borrowing;
+            }
+        }
+
+        return null;
+    }
+
+    // Borrow a book for a member.
+    public Borrowing borrowBook(
+            Long userId,
+            Long bookId
+    ) {
+
+        // Check that the user exists.
+        User user = userService.findUserById(userId);
+
+        if (user == null) {
+
+            throw new IllegalArgumentException(
+                    "User not found"
+            );
+        }
+
+        // Check that the book exists.
+        Book book = bookService.findBookById(bookId);
+
+        if (book == null) {
+
+            throw new IllegalArgumentException(
+                    "Book not found"
+            );
+        }
+
+        // Check whether the book is available.
+        if (!book.isAvailable()) {
+
+            throw new IllegalStateException(
+                    "Book is currently not available"
+            );
+        }
+
+        // Get all existing borrowings.
+        List<Borrowing> borrowings =
+                borrowingStorageService.getAllBorrowings();
+
+        // Generate the next ID.
+        long nextId = 1;
+
+        for (Borrowing borrowing : borrowings) {
+
+            if (borrowing.getId() != null
+                    && borrowing.getId() >= nextId) {
+
+                nextId = borrowing.getId() + 1;
+            }
+        }
+
+        // The book is borrowed today.
+        LocalDate issueDate = LocalDate.now();
+
+        // Get borrowing period configured by Admin.
+        int borrowingPeriodDays =
+                settingsService.getBorrowingPeriodDays();
+
+        // Calculate the due date.
+        LocalDate dueDate =
+                issueDate.plusDays(borrowingPeriodDays);
+
+        // Create the borrowing record.
+        Borrowing borrowing = new Borrowing(
+                nextId,
+                bookId,
+                userId,
+                issueDate,
+                dueDate,
+                null,
+                BorrowingStatus.BORROWED
+        );
+
+        // Add borrowing to the list.
+        borrowings.add(borrowing);
+
+        // Save borrowing records.
+        borrowingStorageService.saveAllBorrowings(
+                borrowings
+        );
+
+        // Mark the book as unavailable.
+        book.setAvailable(false);
+
+        // Save the updated book.
+        bookService.updateBook(book);
+
+        return borrowing;
+    }
+
+    // Return a borrowed book.
+    public Borrowing returnBook(Long borrowingId) {
+
+        // Find the borrowing.
+        Borrowing borrowing =
+                findBorrowingById(borrowingId);
+
+        if (borrowing == null) {
+
+            throw new IllegalArgumentException(
+                    "Borrowing not found"
+            );
+        }
+
+        // Prevent returning the same book twice.
+        if (borrowing.getStatus()
+                == BorrowingStatus.RETURNED) {
+
+            throw new IllegalStateException(
+                    "Book has already been returned"
+            );
+        }
+
+        // Record today's date.
+        LocalDate returnDate = LocalDate.now();
+
+        borrowing.setReturnDate(returnDate);
+
+        // Check if the book is overdue.
+        if (returnDate.isAfter(borrowing.getDueDate())) {
+
+            long overdueDays =
+                    ChronoUnit.DAYS.between(
+                            borrowing.getDueDate(),
+                            returnDate
+                    );
+
+            // Create the fine automatically.
+            fineService.createFine(
+                    borrowing.getId(),
+                    borrowing.getUserId(),
+                    overdueDays
+            );
+        }
+
+        // Book has now been returned.
+        borrowing.setStatus(
+                BorrowingStatus.RETURNED
+        );
+
+        // Get all borrowings.
+        List<Borrowing> borrowings =
+                borrowingStorageService.getAllBorrowings();
+
+        // Update the borrowing record.
+        for (int i = 0; i < borrowings.size(); i++) {
+
+            if (borrowings.get(i).getId()
+                    .equals(borrowing.getId())) {
+
+                borrowings.set(i, borrowing);
+
+                break;
+            }
+        }
+
+        // Save updated borrowing records.
+        borrowingStorageService.saveAllBorrowings(
+                borrowings
+        );
+
+        // Make the book available again.
+        Book book =
+                bookService.findBookById(
+                        borrowing.getBookId()
+                );
+
+        if (book != null) {
+
+            book.setAvailable(true);
+
+            bookService.updateBook(book);
+        }
+
+        return borrowing;
+    }
+}

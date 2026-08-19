@@ -1,3 +1,4 @@
 {
-  "finePerDay": 10
+  "finePerDay" : 15.0,
+  "borrowingPeriodDays" : 14
 }

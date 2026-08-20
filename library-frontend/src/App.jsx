@@ -7,23 +7,21 @@ import {
 
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
+
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import LoginView from "./components/auth/LoginView";
+
 import AdminUsers from "./pages/admin/AdminUser";
 import AdminBooks from "./pages/admin/AdminBooks";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminBorrowings from "./pages/admin/AdminBorrowings";
 import AdminFines from "./pages/admin/AdminFines";
+
 import MemberDashboard from "./pages/member/MemberDashboard";
 import MemberBooks from "./pages/member/MemberBooks";
 import MemberBorrowings from "./pages/member/MemberBorrowings";
 import MemberFines from "./pages/member/MemberFines";
 
-
-
-// =========================================================
-// APP
-// =========================================================
 
 function App() {
 
@@ -35,9 +33,7 @@ function App() {
 
                 <Routes>
 
-                    {/* =================================================
-                        LOGIN
-                    ================================================= */}
+                    {/* LOGIN */}
 
                     <Route
                         path="/login"
@@ -47,20 +43,15 @@ function App() {
                     />
 
 
-                    {/* =================================================
-                        ADMIN ROUTES
-                    ================================================= */}
+                    {/* ADMIN */}
 
                     <Route
                         path="/admin"
                         element={
-
                             <ProtectedRoute
                                 allowedRole="ADMIN"
                             >
-
                                 <AdminDashboard />
-
                             </ProtectedRoute>
                         }
                     />
@@ -69,13 +60,10 @@ function App() {
                     <Route
                         path="/admin/books"
                         element={
-
                             <ProtectedRoute
                                 allowedRole="ADMIN"
                             >
-
                                 <AdminBooks />
-
                             </ProtectedRoute>
                         }
                     />
@@ -84,13 +72,10 @@ function App() {
                     <Route
                         path="/admin/members"
                         element={
-
                             <ProtectedRoute
                                 allowedRole="ADMIN"
                             >
-
                                 <AdminUsers />
-
                             </ProtectedRoute>
                         }
                     />
@@ -99,13 +84,10 @@ function App() {
                     <Route
                         path="/admin/borrowings"
                         element={
-
                             <ProtectedRoute
                                 allowedRole="ADMIN"
                             >
-
                                 <AdminBorrowings />
-
                             </ProtectedRoute>
                         }
                     />
@@ -114,13 +96,10 @@ function App() {
                     <Route
                         path="/admin/fines"
                         element={
-
                             <ProtectedRoute
                                 allowedRole="ADMIN"
                             >
-
                                 <AdminFines />
-
                             </ProtectedRoute>
                         }
                     />
@@ -129,32 +108,24 @@ function App() {
                     <Route
                         path="/admin/settings"
                         element={
-
                             <ProtectedRoute
                                 allowedRole="ADMIN"
                             >
-
                                 <AdminSettings />
-
                             </ProtectedRoute>
                         }
                     />
 
 
-                    {/* =================================================
-                        MEMBER ROUTES
-                    ================================================= */}
+                    {/* MEMBER */}
 
                     <Route
                         path="/member"
                         element={
-
                             <ProtectedRoute
                                 allowedRole="USER"
                             >
-
                                 <MemberDashboard />
-
                             </ProtectedRoute>
                         }
                     />
@@ -163,13 +134,10 @@ function App() {
                     <Route
                         path="/member/books"
                         element={
-
                             <ProtectedRoute
                                 allowedRole="USER"
                             >
-
                                 <MemberBooks />
-
                             </ProtectedRoute>
                         }
                     />
@@ -178,13 +146,10 @@ function App() {
                     <Route
                         path="/member/borrowings"
                         element={
-
                             <ProtectedRoute
                                 allowedRole="USER"
                             >
-
                                 <MemberBorrowings />
-
                             </ProtectedRoute>
                         }
                     />
@@ -193,21 +158,16 @@ function App() {
                     <Route
                         path="/member/fines"
                         element={
-
                             <ProtectedRoute
                                 allowedRole="USER"
                             >
-
                                 <MemberFines />
-
                             </ProtectedRoute>
                         }
                     />
 
 
-                    {/* =================================================
-                        ROOT
-                    ================================================= */}
+                    {/* ROOT */}
 
                     <Route
                         path="/"
@@ -220,9 +180,7 @@ function App() {
                     />
 
 
-                    {/* =================================================
-                        UNKNOWN ROUTE
-                    ================================================= */}
+                    {/* UNKNOWN */}
 
                     <Route
                         path="*"

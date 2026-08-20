@@ -18,6 +18,11 @@ import Navbar from "../../components/layout/Navbar";
 
 import api from "../../services/api";
 
+import {
+    buildLookup,
+    normalizeList,
+} from "../../utils/lookups";
+
 
 // =========================================================
 // ADMIN FINES PAGE
@@ -30,6 +35,12 @@ export default function AdminFines() {
     // =====================================================
 
     const [fines, setFines] = useState([]);
+
+    const [borrowingMap, setBorrowingMap] = useState(new Map());
+
+    const [bookMap, setBookMap] = useState(new Map());
+
+    const [userMap, setUserMap] = useState(new Map());
 
     const [loading, setLoading] = useState(true);
 
@@ -54,8 +65,37 @@ export default function AdminFines() {
 
             setError("");
 
-            const data =
-                await api.fines.getAll();
+            const [
+                finesData,
+                borrowingsData,
+                booksData,
+                usersData,
+            ] = await Promise.all([
+                api.fines.getAll(),
+                api.borrowings.getAll(),
+                api.books.getAll({ page: 0, size: 1000 }),
+                api.users.getAll(),
+            ]);
+
+            setBorrowingMap(
+                buildLookup(
+                    normalizeList(borrowingsData)
+                )
+            );
+
+            setBookMap(
+                buildLookup(
+                    normalizeList(booksData)
+                )
+            );
+
+            setUserMap(
+                buildLookup(
+                    normalizeList(usersData)
+                )
+            );
+
+            const data = finesData;
 
 
             // =================================================
@@ -127,16 +167,30 @@ export default function AdminFines() {
     // GET BOOK TITLE
     // =====================================================
 
+    function getBorrowing(fine) {
+
+        return borrowingMap.get(
+            fine.borrowingId
+        );
+    }
+
+
     function getBookTitle(fine) {
+
+        const borrowing =
+            getBorrowing(fine);
+
+        const book =
+            bookMap.get(
+                borrowing?.bookId
+            );
 
         return (
             fine.bookTitle ||
-
-            fine.book?.title ||
-
-            fine.title ||
-
-            "Unknown Book"
+            book?.title ||
+            (borrowing?.bookId
+                ? `Book #${borrowing.bookId}`
+                : "Unknown Book")
         );
     }
 
@@ -147,16 +201,17 @@ export default function AdminFines() {
 
     function getMemberName(fine) {
 
+        const member =
+            userMap.get(
+                fine.userId
+            );
+
         return (
             fine.memberName ||
-
-            fine.member?.name ||
-
-            fine.userName ||
-
-            fine.user?.name ||
-
-            "Unknown Member"
+            member?.name ||
+            (fine.userId
+                ? `User #${fine.userId}`
+                : "Unknown Member")
         );
     }
 
@@ -189,13 +244,14 @@ export default function AdminFines() {
 
     function getMemberEmail(fine) {
 
+        const member =
+            userMap.get(
+                fine.userId
+            );
+
         return (
-            fine.member?.email ||
-
-            fine.user?.email ||
-
+            member?.email ||
             fine.email ||
-
             ""
         );
     }
@@ -207,11 +263,12 @@ export default function AdminFines() {
 
     function getDueDate(fine) {
 
+        const borrowing =
+            getBorrowing(fine);
+
         return (
             fine.dueDate ||
-
-            fine.dueAt ||
-
+            borrowing?.dueDate ||
             null
         );
     }
@@ -223,11 +280,12 @@ export default function AdminFines() {
 
     function getReturnDate(fine) {
 
+        const borrowing =
+            getBorrowing(fine);
+
         return (
             fine.returnDate ||
-
-            fine.returnedAt ||
-
+            borrowing?.returnDate ||
             null
         );
     }
@@ -650,7 +708,7 @@ export default function AdminFines() {
             className="
                 min-h-screen
                 w-full
-                bg-[#faf4ec]
+                bg-[#fff8f0]
             "
         >
 
@@ -693,10 +751,10 @@ export default function AdminFines() {
                         py-2
                         text-sm
                         font-medium
-                        text-[#735e50]
+                        text-[#78716c]
                         transition
-                        hover:bg-[#f1e3d3]
-                        hover:text-[#2a1d15]
+                        hover:bg-[#ffedd5]
+                        hover:text-[#292524]
                     "
                 >
 
@@ -734,7 +792,7 @@ export default function AdminFines() {
                                 font-medium
                                 uppercase
                                 tracking-wider
-                                text-[#a8652c]
+                                text-[#ea580c]
                             "
                         >
                             Administration
@@ -745,7 +803,7 @@ export default function AdminFines() {
                             className="
                                 text-2xl
                                 font-semibold
-                                text-[#2a1d15]
+                                text-[#292524]
                             "
                         >
                             Fines
@@ -756,7 +814,7 @@ export default function AdminFines() {
                             className="
                                 mt-1
                                 text-sm
-                                text-[#735e50]
+                                text-[#78716c]
                             "
                         >
                             View automatically calculated library fines.
@@ -888,7 +946,7 @@ export default function AdminFines() {
                             className="
                                 rounded-xl
                                 border
-                                border-[#e5d7c5]
+                                border-[#fed7aa]
                                 bg-white
                                 p-5
                                 shadow-sm
@@ -909,7 +967,7 @@ export default function AdminFines() {
                                         className="
                                             text-sm
                                             font-medium
-                                            text-[#735e50]
+                                            text-[#78716c]
                                         "
                                     >
                                         Total Fines
@@ -921,7 +979,7 @@ export default function AdminFines() {
                                             mt-2
                                             text-2xl
                                             font-semibold
-                                            text-[#2a1d15]
+                                            text-[#292524]
                                         "
                                     >
                                         {
@@ -942,8 +1000,8 @@ export default function AdminFines() {
                                         items-center
                                         justify-center
                                         rounded-lg
-                                        bg-[#f1e3d3]
-                                        text-[#a8652c]
+                                        bg-[#ffedd5]
+                                        text-[#ea580c]
                                     "
                                 >
 
@@ -964,7 +1022,7 @@ export default function AdminFines() {
                             className="
                                 rounded-xl
                                 border
-                                border-[#e5d7c5]
+                                border-[#fed7aa]
                                 bg-white
                                 p-5
                                 shadow-sm
@@ -985,7 +1043,7 @@ export default function AdminFines() {
                                         className="
                                             text-sm
                                             font-medium
-                                            text-[#735e50]
+                                            text-[#78716c]
                                         "
                                     >
                                         Outstanding
@@ -997,7 +1055,7 @@ export default function AdminFines() {
                                             mt-2
                                             text-2xl
                                             font-semibold
-                                            text-[#2a1d15]
+                                            text-[#292524]
                                         "
                                     >
                                         {
@@ -1040,7 +1098,7 @@ export default function AdminFines() {
                             className="
                                 rounded-xl
                                 border
-                                border-[#e5d7c5]
+                                border-[#fed7aa]
                                 bg-white
                                 p-5
                                 shadow-sm
@@ -1061,7 +1119,7 @@ export default function AdminFines() {
                                         className="
                                             text-sm
                                             font-medium
-                                            text-[#735e50]
+                                            text-[#78716c]
                                         "
                                     >
                                         Outstanding Records
@@ -1073,7 +1131,7 @@ export default function AdminFines() {
                                             mt-2
                                             text-2xl
                                             font-semibold
-                                            text-[#2a1d15]
+                                            text-[#292524]
                                         "
                                     >
                                         {
@@ -1092,8 +1150,8 @@ export default function AdminFines() {
                                         items-center
                                         justify-center
                                         rounded-lg
-                                        bg-[#f1e3d3]
-                                        text-[#a8652c]
+                                        bg-[#ffedd5]
+                                        text-[#ea580c]
                                     "
                                 >
 
@@ -1121,7 +1179,7 @@ export default function AdminFines() {
                         mb-5
                         rounded-xl
                         border
-                        border-[#e5d7c5]
+                        border-[#fed7aa]
                         bg-white
                         p-4
                         shadow-sm
@@ -1154,7 +1212,7 @@ export default function AdminFines() {
                                     h-4
                                     w-4
                                     -translate-y-1/2
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                 "
                             />
 
@@ -1172,18 +1230,18 @@ export default function AdminFines() {
                                     w-full
                                     rounded-lg
                                     border
-                                    border-[#ddd0c1]
-                                    bg-[#fffdfb]
+                                    border-[#fdba74]
+                                    bg-[#fffef9]
                                     py-2.5
                                     pl-9
                                     pr-3
                                     text-sm
-                                    text-[#2a1d15]
+                                    text-[#292524]
                                     outline-none
                                     transition
-                                    focus:border-[#a8652c]
+                                    focus:border-[#ea580c]
                                     focus:ring-1
-                                    focus:ring-[#a8652c]
+                                    focus:ring-[#ea580c]
                                 "
                             />
 
@@ -1202,16 +1260,16 @@ export default function AdminFines() {
                             className="
                                 rounded-lg
                                 border
-                                border-[#ddd0c1]
-                                bg-[#fffdfb]
+                                border-[#fdba74]
+                                bg-[#fffef9]
                                 px-4
                                 py-2.5
                                 text-sm
-                                text-[#2a1d15]
+                                text-[#292524]
                                 outline-none
-                                focus:border-[#a8652c]
+                                focus:border-[#ea580c]
                                 focus:ring-1
-                                focus:ring-[#a8652c]
+                                focus:ring-[#ea580c]
                             "
                         >
 
@@ -1243,7 +1301,7 @@ export default function AdminFines() {
                         overflow-hidden
                         rounded-xl
                         border
-                        border-[#e5d7c5]
+                        border-[#fed7aa]
                         bg-white
                         shadow-sm
                     "
@@ -1267,7 +1325,7 @@ export default function AdminFines() {
                             <p
                                 className="
                                     text-sm
-                                    text-[#735e50]
+                                    text-[#78716c]
                                 "
                             >
                                 Loading fines...
@@ -1301,8 +1359,8 @@ export default function AdminFines() {
                                     items-center
                                     justify-center
                                     rounded-full
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
+                                    bg-[#ffedd5]
+                                    text-[#ea580c]
                                 "
                             >
 
@@ -1316,7 +1374,7 @@ export default function AdminFines() {
                             <h3
                                 className="
                                     font-medium
-                                    text-[#2a1d15]
+                                    text-[#292524]
                                 "
                             >
                                 No fines found
@@ -1328,7 +1386,7 @@ export default function AdminFines() {
                                     mt-1
                                     text-center
                                     text-sm
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                 "
                             >
 
@@ -1361,8 +1419,8 @@ export default function AdminFines() {
                                 <thead
                                     className="
                                         border-b
-                                        border-[#e5d7c5]
-                                        bg-[#fcf8f3]
+                                        border-[#fed7aa]
+                                        bg-[#fffbeb]
                                     "
                                 >
 
@@ -1380,7 +1438,7 @@ export default function AdminFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Book
@@ -1399,7 +1457,7 @@ export default function AdminFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Member
@@ -1418,7 +1476,7 @@ export default function AdminFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Due Date
@@ -1437,7 +1495,7 @@ export default function AdminFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Return Date
@@ -1456,7 +1514,7 @@ export default function AdminFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Overdue
@@ -1475,7 +1533,7 @@ export default function AdminFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Fine
@@ -1494,7 +1552,7 @@ export default function AdminFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Status
@@ -1551,7 +1609,7 @@ export default function AdminFines() {
                                                         border-b
                                                         border-[#eee5dc]
                                                         last:border-0
-                                                        hover:bg-[#fffaf5]
+                                                        hover:bg-[#fffbf5]
                                                     "
                                                 >
 
@@ -1583,8 +1641,8 @@ export default function AdminFines() {
                                                                     items-center
                                                                     justify-center
                                                                     rounded-lg
-                                                                    bg-[#f1e3d3]
-                                                                    text-[#a8652c]
+                                                                    bg-[#ffedd5]
+                                                                    text-[#ea580c]
                                                                 "
                                                             >
 
@@ -1605,7 +1663,7 @@ export default function AdminFines() {
                                                                         whitespace-nowrap
                                                                         text-sm
                                                                         font-medium
-                                                                        text-[#2a1d15]
+                                                                        text-[#292524]
                                                                     "
                                                                 >
                                                                     {
@@ -1650,10 +1708,10 @@ export default function AdminFines() {
                                                                     items-center
                                                                     justify-center
                                                                     rounded-full
-                                                                    bg-[#ead7c5]
+                                                                    bg-[#fed7aa]
                                                                     text-xs
                                                                     font-semibold
-                                                                    text-[#8f501e]
+                                                                    text-[#c2410c]
                                                                 "
                                                             >
 
@@ -1673,7 +1731,7 @@ export default function AdminFines() {
                                                                         whitespace-nowrap
                                                                         text-sm
                                                                         font-medium
-                                                                        text-[#2a1d15]
+                                                                        text-[#292524]
                                                                     "
                                                                 >
                                                                     {
@@ -1686,7 +1744,7 @@ export default function AdminFines() {
                                                                     className="
                                                                         whitespace-nowrap
                                                                         text-xs
-                                                                        text-[#9a8778]
+                                                                        text-[#a8a29e]
                                                                     "
                                                                 >
 
@@ -1725,7 +1783,7 @@ export default function AdminFines() {
                                                             px-5
                                                             py-4
                                                             text-sm
-                                                            text-[#735e50]
+                                                            text-[#78716c]
                                                         "
                                                     >
 
@@ -1750,7 +1808,7 @@ export default function AdminFines() {
                                                             px-5
                                                             py-4
                                                             text-sm
-                                                            text-[#735e50]
+                                                            text-[#78716c]
                                                         "
                                                     >
 
@@ -1809,7 +1867,7 @@ export default function AdminFines() {
                                                             <span
                                                                 className="
                                                                     text-sm
-                                                                    text-[#9a8778]
+                                                                    text-[#a8a29e]
                                                                 "
                                                             >
                                                                 0 days
@@ -1836,7 +1894,7 @@ export default function AdminFines() {
                                                             className="
                                                                 text-sm
                                                                 font-semibold
-                                                                text-[#2a1d15]
+                                                                text-[#292524]
                                                             "
                                                         >
                                                             {
@@ -1863,36 +1921,14 @@ export default function AdminFines() {
 
                                                         {paid ? (
 
-                                                            <span
-                                                                className="
-                                                                    inline-flex
-                                                                    rounded-full
-                                                                    bg-green-50
-                                                                    px-2.5
-                                                                    py-1
-                                                                    text-xs
-                                                                    font-medium
-                                                                    text-green-700
-                                                                "
-                                                            >
+                                                            <span className="inline-flex rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
                                                                 Paid
                                                             </span>
 
                                                         ) : (
 
-                                                            <span
-                                                                className="
-                                                                    inline-flex
-                                                                    rounded-full
-                                                                    bg-red-50
-                                                                    px-2.5
-                                                                    py-1
-                                                                    text-xs
-                                                                    font-medium
-                                                                    text-red-700
-                                                                "
-                                                            >
-                                                                Outstanding
+                                                            <span className="inline-flex rounded-full bg-[#ffedd5] px-2.5 py-1 text-xs font-medium text-[#c2410c]">
+                                                                Applied
                                                             </span>
 
                                                         )}

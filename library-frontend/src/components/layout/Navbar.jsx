@@ -1,11 +1,20 @@
-import { LogOut, Menu, User } from "lucide-react";
+import {
+    BookOpen,
+    LogOut,
+} from "lucide-react";
+
+import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../context/AuthContext";
 
 
-export default function Navbar({
-    onMenuClick,
-}) {
+// =========================================================
+// NAVBAR
+// =========================================================
+
+export default function Navbar() {
+
+    const navigate = useNavigate();
 
     const {
         user,
@@ -13,188 +22,295 @@ export default function Navbar({
     } = useAuth();
 
 
+    // =====================================================
+    // LOGOUT
+    // =====================================================
+
     function handleLogout() {
 
         logout();
 
+        navigate(
+            "/login",
+            {
+                replace: true,
+            }
+        );
     }
 
+
+    // =====================================================
+    // DASHBOARD
+    // =====================================================
+
+    function goToDashboard() {
+
+        const role =
+            String(
+                user?.role || ""
+            ).toUpperCase();
+
+
+        if (role === "ADMIN") {
+
+            navigate("/admin");
+
+            return;
+        }
+
+
+        if (
+            role === "USER" ||
+            role === "MEMBER"
+        ) {
+
+            navigate("/member");
+
+            return;
+        }
+
+
+        navigate("/login");
+    }
+
+
+    // =====================================================
+    // USER INFORMATION
+    // =====================================================
+
+    const displayName =
+        user?.name ||
+        user?.email ||
+        "User";
+
+
+    const displayRole =
+        String(
+            user?.role || "USER"
+        ).toUpperCase();
+
+
+    // =====================================================
+    // RENDER
+    // =====================================================
 
     return (
 
         <header
             className="
-                h-16
-                shrink-0
+                sticky
+                top-0
+                z-40
+                w-full
                 border-b
-                border-[#e5d7c5]
-                bg-[#faf4ec]
-                px-4
-                sm:px-6
-                flex
-                items-center
-                justify-between
+                border-[#fed7aa]
+                bg-[#fff8f0]/95
+                backdrop-blur-md
+                transition-all
+                duration-300
             "
         >
-
-            {/* ============================================
-                LEFT
-            ============================================ */}
-
-            <div className="flex items-center gap-3">
-
-                {/* Mobile menu button */}
-
-                {onMenuClick && (
-
-                    <button
-                        type="button"
-                        onClick={onMenuClick}
-                        className="
-                            lg:hidden
-                            w-9
-                            h-9
-                            rounded-lg
-                            flex
-                            items-center
-                            justify-center
-                            text-[#6f5848]
-                            hover:bg-[#eee3d5]
-                            transition
-                        "
-                    >
-
-                        <Menu className="w-5 h-5" />
-
-                    </button>
-
-                )}
-
-
-                <div>
-
-                    <p
-                        className="
-                            text-sm
-                            font-semibold
-                            text-[#2a1d15]
-                        "
-                    >
-                        Library Management
-                    </p>
-
-                    <p
-                        className="
-                            hidden
-                            sm:block
-                            text-[11px]
-                            text-[#8e7b6d]
-                        "
-                    >
-                        Manage your library efficiently
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            {/* ============================================
-                RIGHT
-            ============================================ */}
 
             <div
                 className="
                     flex
+                    h-16
+                    w-full
                     items-center
-                    gap-2
-                    sm:gap-3
+                    justify-between
+                    px-4
+                    sm:px-6
+                    lg:px-8
+                    xl:px-10
                 "
             >
 
-                {/* User information */}
-
-                <div
-                    className="
-                        hidden
-                        sm:flex
-                        items-center
-                        gap-2
-                    "
-                >
-
-                    <div
-                        className="
-                            w-8
-                            h-8
-                            rounded-full
-                            bg-[#ead8c4]
-                            text-[#79512f]
-                            flex
-                            items-center
-                            justify-center
-                        "
-                    >
-
-                        <User className="w-4 h-4" />
-
-                    </div>
-
-
-                    <div className="leading-tight">
-
-                        <p
-                            className="
-                                text-xs
-                                font-semibold
-                                text-[#3d2b1f]
-                            "
-                        >
-                            {user?.name || "User"}
-                        </p>
-
-                        <p
-                            className="
-                                text-[10px]
-                                text-[#8e7b6d]
-                                uppercase
-                            "
-                        >
-                            {user?.role || "USER"}
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                {/* Logout */}
+                {/* =================================================
+                    BRAND
+                ================================================= */}
 
                 <button
                     type="button"
-                    onClick={handleLogout}
+                    onClick={goToDashboard}
                     className="
+                        group
                         flex
                         items-center
-                        gap-2
+                        gap-3
                         rounded-lg
-                        px-3
-                        py-2
-                        text-xs
-                        font-medium
-                        text-[#73533b]
-                        hover:bg-[#eee3d5]
-                        transition
+                        text-left
+                        outline-none
                     "
                 >
 
-                    <LogOut className="w-4 h-4" />
+                    {/* LOGO */}
 
-                    <span className="hidden sm:inline">
-                        Logout
-                    </span>
+                    <div
+                        className="
+                            flex
+                            h-9
+                            w-9
+                            shrink-0
+                            items-center
+                            justify-center
+                            rounded-lg
+                            bg-[#ea580c]
+                            text-white
+                            shadow-sm
+                            transition-all
+                            duration-300
+                            group-hover:scale-105
+                            group-hover:shadow-md
+                        "
+                    >
+
+                        <BookOpen
+                            className="
+                                h-5
+                                w-5
+                                transition-transform
+                                duration-300
+                                group-hover:rotate-[-5deg]
+                            "
+                        />
+
+                    </div>
+
+
+                    {/* BRAND TEXT */}
+
+                    <div>
+
+                        <p
+                            className="
+                                text-sm
+                                font-semibold
+                                text-[#292524]
+                                transition-colors
+                                duration-300
+                                group-hover:text-[#ea580c]
+                            "
+                        >
+                            Library Fine Calculator
+                        </p>
+
+
+                        <p
+                            className="
+                                text-[11px]
+                                text-[#a8a29e]
+                            "
+                        >
+                            Fine & Borrowing Management
+                        </p>
+
+                    </div>
 
                 </button>
+
+
+                {/* =================================================
+                    RIGHT SIDE
+                ================================================= */}
+
+                <div
+                    className="
+                        flex
+                        items-center
+                        gap-4
+                    "
+                >
+
+                    {/* =================================================
+                        USER DETAILS
+                        NO USER ICON
+                    ================================================= */}
+
+                    <div
+                        className="
+                            hidden
+                            text-right
+                            sm:block
+                        "
+                    >
+
+                        <p
+                            className="
+                                max-w-[180px]
+                                truncate
+                                text-sm
+                                font-medium
+                                text-[#292524]
+                            "
+                        >
+                            {displayName}
+                        </p>
+
+
+                        <p
+                            className="
+                                text-[11px]
+                                font-medium
+                                text-[#a8a29e]
+                            "
+                        >
+                            {displayRole}
+                        </p>
+
+                    </div>
+
+
+                    {/* =================================================
+                        LOGOUT
+                    ================================================= */}
+
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="
+                            group
+                            inline-flex
+                            items-center
+                            gap-2
+                            rounded-lg
+                            border
+                            border-[#fdba74]
+                            bg-white
+                            px-3
+                            py-2
+                            text-sm
+                            font-medium
+                            text-[#78716c]
+                            shadow-sm
+                            transition-all
+                            duration-300
+                            hover:-translate-y-0.5
+                            hover:border-[#fbbf24]
+                            hover:bg-[#ffedd5]
+                            hover:text-[#292524]
+                            hover:shadow-md
+                            active:translate-y-0
+                        "
+                    >
+
+                        <LogOut
+                            className="
+                                h-4
+                                w-4
+                                transition-transform
+                                duration-300
+                                group-hover:translate-x-0.5
+                            "
+                        />
+
+
+                        <span>
+                            Logout
+                        </span>
+
+                    </button>
+
+                </div>
 
             </div>
 

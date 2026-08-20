@@ -19,6 +19,11 @@ import api from "../../services/api";
 
 import { useAuth } from "../../context/AuthContext";
 
+import {
+    buildLookup,
+    normalizeList,
+} from "../../utils/lookups";
+
 
 // =========================================================
 // MEMBER FINES
@@ -40,6 +45,10 @@ export default function MemberFines() {
     // =====================================================
 
     const [fines, setFines] = useState([]);
+
+    const [borrowingMap, setBorrowingMap] = useState(new Map());
+
+    const [bookMap, setBookMap] = useState(new Map());
 
     const [loading, setLoading] = useState(true);
 
@@ -77,10 +86,31 @@ export default function MemberFines() {
             }
 
 
-            const data =
-                await api.fines.getByUserId(
+            const [
+                finesData,
+                borrowingsData,
+                booksData,
+            ] = await Promise.all([
+                api.fines.getByUserId(
                     user.id
-                );
+                ),
+                api.borrowings.getAll(),
+                api.books.getAll({ page: 0, size: 1000 }),
+            ]);
+
+            setBorrowingMap(
+                buildLookup(
+                    normalizeList(borrowingsData)
+                )
+            );
+
+            setBookMap(
+                buildLookup(
+                    normalizeList(booksData)
+                )
+            );
+
+            const data = finesData;
 
 
             // =================================================
@@ -152,18 +182,32 @@ export default function MemberFines() {
     // BOOK TITLE
     // =====================================================
 
+    function getBorrowing(fine) {
+
+        return borrowingMap.get(
+            fine.borrowingId
+        );
+    }
+
+
     function getBookTitle(
         fine
     ) {
 
+        const borrowing =
+            getBorrowing(fine);
+
+        const book =
+            bookMap.get(
+                borrowing?.bookId
+            );
+
         return (
             fine.bookTitle ||
-
-            fine.book?.title ||
-
-            fine.title ||
-
-            "Unknown Book"
+            book?.title ||
+            (borrowing?.bookId
+                ? `Book #${borrowing.bookId}`
+                : "Unknown Book")
         );
     }
 
@@ -176,11 +220,12 @@ export default function MemberFines() {
         fine
     ) {
 
+        const borrowing =
+            getBorrowing(fine);
+
         return (
             fine.dueDate ||
-
-            fine.dueAt ||
-
+            borrowing?.dueDate ||
             null
         );
     }
@@ -194,11 +239,12 @@ export default function MemberFines() {
         fine
     ) {
 
+        const borrowing =
+            getBorrowing(fine);
+
         return (
             fine.returnDate ||
-
-            fine.returnedAt ||
-
+            borrowing?.returnDate ||
             null
         );
     }
@@ -489,7 +535,7 @@ export default function MemberFines() {
             className="
                 min-h-screen
                 w-full
-                bg-[#faf4ec]
+                bg-[#fff8f0]
             "
         >
 
@@ -532,10 +578,10 @@ export default function MemberFines() {
                         py-2
                         text-sm
                         font-medium
-                        text-[#735e50]
+                        text-[#78716c]
                         transition
-                        hover:bg-[#f1e3d3]
-                        hover:text-[#2a1d15]
+                        hover:bg-[#ffedd5]
+                        hover:text-[#292524]
                     "
                 >
 
@@ -561,7 +607,7 @@ export default function MemberFines() {
                             font-medium
                             uppercase
                             tracking-wider
-                            text-[#a8652c]
+                            text-[#ea580c]
                         "
                     >
                         Member Area
@@ -572,7 +618,7 @@ export default function MemberFines() {
                         className="
                             text-2xl
                             font-semibold
-                            text-[#2a1d15]
+                            text-[#292524]
                         "
                     >
                         My Fines
@@ -583,7 +629,7 @@ export default function MemberFines() {
                         className="
                             mt-1
                             text-sm
-                            text-[#735e50]
+                            text-[#78716c]
                         "
                     >
                         View fines generated for overdue books.
@@ -671,7 +717,7 @@ export default function MemberFines() {
                             className="
                                 rounded-xl
                                 border
-                                border-[#e5d7c5]
+                                border-[#fed7aa]
                                 bg-white
                                 p-5
                                 shadow-sm
@@ -691,7 +737,7 @@ export default function MemberFines() {
                                     <p
                                         className="
                                             text-sm
-                                            text-[#735e50]
+                                            text-[#78716c]
                                         "
                                     >
                                         Total Fines
@@ -703,7 +749,7 @@ export default function MemberFines() {
                                             mt-2
                                             text-2xl
                                             font-semibold
-                                            text-[#2a1d15]
+                                            text-[#292524]
                                         "
                                     >
                                         {
@@ -724,8 +770,8 @@ export default function MemberFines() {
                                         items-center
                                         justify-center
                                         rounded-lg
-                                        bg-[#f1e3d3]
-                                        text-[#a8652c]
+                                        bg-[#ffedd5]
+                                        text-[#ea580c]
                                     "
                                 >
 
@@ -746,7 +792,7 @@ export default function MemberFines() {
                             className="
                                 rounded-xl
                                 border
-                                border-[#e5d7c5]
+                                border-[#fed7aa]
                                 bg-white
                                 p-5
                                 shadow-sm
@@ -766,7 +812,7 @@ export default function MemberFines() {
                                     <p
                                         className="
                                             text-sm
-                                            text-[#735e50]
+                                            text-[#78716c]
                                         "
                                     >
                                         Outstanding
@@ -778,7 +824,7 @@ export default function MemberFines() {
                                             mt-2
                                             text-2xl
                                             font-semibold
-                                            text-[#2a1d15]
+                                            text-[#292524]
                                         "
                                     >
                                         {
@@ -828,7 +874,7 @@ export default function MemberFines() {
                         overflow-hidden
                         rounded-xl
                         border
-                        border-[#e5d7c5]
+                        border-[#fed7aa]
                         bg-white
                         shadow-sm
                     "
@@ -848,7 +894,7 @@ export default function MemberFines() {
                             <p
                                 className="
                                     text-sm
-                                    text-[#735e50]
+                                    text-[#78716c]
                                 "
                             >
                                 Loading your fines...
@@ -898,7 +944,7 @@ export default function MemberFines() {
                                 className="
                                     text-lg
                                     font-medium
-                                    text-[#2a1d15]
+                                    text-[#292524]
                                 "
                             >
                                 No fines
@@ -910,7 +956,7 @@ export default function MemberFines() {
                                     mt-1
                                     text-center
                                     text-sm
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                 "
                             >
                                 You currently have no library fines.
@@ -939,8 +985,8 @@ export default function MemberFines() {
                                 <thead
                                     className="
                                         border-b
-                                        border-[#e5d7c5]
-                                        bg-[#fcf8f3]
+                                        border-[#fed7aa]
+                                        bg-[#fffbeb]
                                     "
                                 >
 
@@ -956,7 +1002,7 @@ export default function MemberFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Book
@@ -973,7 +1019,7 @@ export default function MemberFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Due Date
@@ -990,7 +1036,7 @@ export default function MemberFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Return Date
@@ -1007,7 +1053,7 @@ export default function MemberFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Overdue
@@ -1024,7 +1070,7 @@ export default function MemberFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Amount
@@ -1041,7 +1087,7 @@ export default function MemberFines() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Status
@@ -1086,7 +1132,7 @@ export default function MemberFines() {
                                                         border-b
                                                         border-[#eee5dc]
                                                         last:border-0
-                                                        hover:bg-[#fffaf5]
+                                                        hover:bg-[#fffbf5]
                                                     "
                                                 >
 
@@ -1116,8 +1162,8 @@ export default function MemberFines() {
                                                                     items-center
                                                                     justify-center
                                                                     rounded-lg
-                                                                    bg-[#f1e3d3]
-                                                                    text-[#a8652c]
+                                                                    bg-[#ffedd5]
+                                                                    text-[#ea580c]
                                                                 "
                                                             >
 
@@ -1133,7 +1179,7 @@ export default function MemberFines() {
                                                                     whitespace-nowrap
                                                                     text-sm
                                                                     font-medium
-                                                                    text-[#2a1d15]
+                                                                    text-[#292524]
                                                                 "
                                                             >
                                                                 {
@@ -1164,7 +1210,7 @@ export default function MemberFines() {
                                                                 items-center
                                                                 gap-2
                                                                 text-sm
-                                                                text-[#735e50]
+                                                                text-[#78716c]
                                                             "
                                                         >
 
@@ -1172,7 +1218,7 @@ export default function MemberFines() {
                                                                 className="
                                                                     h-4
                                                                     w-4
-                                                                    text-[#9a8778]
+                                                                    text-[#a8a29e]
                                                                 "
                                                             />
 
@@ -1197,7 +1243,7 @@ export default function MemberFines() {
                                                             px-5
                                                             py-4
                                                             text-sm
-                                                            text-[#735e50]
+                                                            text-[#78716c]
                                                         "
                                                     >
 
@@ -1269,7 +1315,7 @@ export default function MemberFines() {
                                                             className="
                                                                 text-sm
                                                                 font-semibold
-                                                                text-[#2a1d15]
+                                                                text-[#292524]
                                                             "
                                                         >
                                                             {
@@ -1294,52 +1340,16 @@ export default function MemberFines() {
 
                                                         {paid ? (
 
-                                                            <span
-                                                                className="
-                                                                    inline-flex
-                                                                    items-center
-                                                                    gap-1.5
-                                                                    rounded-full
-                                                                    bg-green-50
-                                                                    px-2.5
-                                                                    py-1
-                                                                    text-xs
-                                                                    font-medium
-                                                                    text-green-700
-                                                                "
-                                                            >
-
-                                                                <CheckCircle
-                                                                    className="h-3.5 w-3.5"
-                                                                />
-
+                                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                                                                <CheckCircle className="h-3.5 w-3.5" />
                                                                 Paid
-
                                                             </span>
 
                                                         ) : (
 
-                                                            <span
-                                                                className="
-                                                                    inline-flex
-                                                                    items-center
-                                                                    gap-1.5
-                                                                    rounded-full
-                                                                    bg-red-50
-                                                                    px-2.5
-                                                                    py-1
-                                                                    text-xs
-                                                                    font-medium
-                                                                    text-red-700
-                                                                "
-                                                            >
-
-                                                                <AlertCircle
-                                                                    className="h-3.5 w-3.5"
-                                                                />
-
-                                                                Outstanding
-
+                                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ffedd5] px-2.5 py-1 text-xs font-medium text-[#c2410c]">
+                                                                <AlertCircle className="h-3.5 w-3.5" />
+                                                                Applied
                                                             </span>
 
                                                         )}

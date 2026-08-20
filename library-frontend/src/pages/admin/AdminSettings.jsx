@@ -245,7 +245,7 @@ export default function AdminSettings() {
             className="
                 min-h-screen
                 w-full
-                bg-[#faf4ec]
+                bg-[#fff8f0]
             "
         >
 
@@ -288,10 +288,10 @@ export default function AdminSettings() {
                         py-2
                         text-sm
                         font-medium
-                        text-[#735e50]
+                        text-[#78716c]
                         transition
-                        hover:bg-[#f1e3d3]
-                        hover:text-[#2a1d15]
+                        hover:bg-[#ffedd5]
+                        hover:text-[#292524]
                     "
                 >
 
@@ -317,7 +317,7 @@ export default function AdminSettings() {
                             font-medium
                             uppercase
                             tracking-wider
-                            text-[#a8652c]
+                            text-[#ea580c]
                         "
                     >
                         Administration
@@ -328,7 +328,7 @@ export default function AdminSettings() {
                         className="
                             text-2xl
                             font-semibold
-                            text-[#2a1d15]
+                            text-[#292524]
                         "
                     >
                         Settings
@@ -339,7 +339,7 @@ export default function AdminSettings() {
                         className="
                             mt-1
                             text-sm
-                            text-[#735e50]
+                            text-[#78716c]
                         "
                     >
                         Configure the library borrowing and fine rules.
@@ -458,7 +458,7 @@ export default function AdminSettings() {
                         max-w-3xl
                         rounded-xl
                         border
-                        border-[#e5d7c5]
+                        border-[#fed7aa]
                         bg-white
                         shadow-sm
                     "
@@ -474,7 +474,7 @@ export default function AdminSettings() {
                             items-center
                             gap-4
                             border-b
-                            border-[#e5d7c5]
+                            border-[#fed7aa]
                             px-6
                             py-5
                         "
@@ -488,8 +488,8 @@ export default function AdminSettings() {
                                 items-center
                                 justify-center
                                 rounded-lg
-                                bg-[#f1e3d3]
-                                text-[#a8652c]
+                                bg-[#ffedd5]
+                                text-[#ea580c]
                             "
                         >
 
@@ -506,7 +506,7 @@ export default function AdminSettings() {
                                 className="
                                     text-lg
                                     font-semibold
-                                    text-[#2a1d15]
+                                    text-[#292524]
                                 "
                             >
                                 Library Rules
@@ -517,7 +517,7 @@ export default function AdminSettings() {
                                 className="
                                     mt-1
                                     text-sm
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                 "
                             >
                                 These values are used when calculating
@@ -548,7 +548,7 @@ export default function AdminSettings() {
                             <p
                                 className="
                                     text-sm
-                                    text-[#735e50]
+                                    text-[#78716c]
                                 "
                             >
                                 Loading settings...
@@ -576,8 +576,8 @@ export default function AdminSettings() {
                                 className="
                                     rounded-xl
                                     border
-                                    border-[#e5d7c5]
-                                    bg-[#fffdfb]
+                                    border-[#fed7aa]
+                                    bg-[#fffef9]
                                     p-5
                                 "
                             >
@@ -600,8 +600,8 @@ export default function AdminSettings() {
                                             items-center
                                             justify-center
                                             rounded-lg
-                                            bg-[#f1e3d3]
-                                            text-[#a8652c]
+                                            bg-[#ffedd5]
+                                            text-[#ea580c]
                                         "
                                     >
 
@@ -618,7 +618,7 @@ export default function AdminSettings() {
                                             className="
                                                 text-sm
                                                 font-semibold
-                                                text-[#2a1d15]
+                                                text-[#292524]
                                             "
                                         >
                                             Borrowing Period
@@ -629,7 +629,7 @@ export default function AdminSettings() {
                                             className="
                                                 mt-1
                                                 text-xs
-                                                text-[#9a8778]
+                                                text-[#a8a29e]
                                             "
                                         >
                                             Number of days a member can
@@ -650,7 +650,7 @@ export default function AdminSettings() {
                                             block
                                             text-sm
                                             font-medium
-                                            text-[#463529]
+                                            text-[#44403c]
                                         "
                                     >
                                         Borrowing period in days
@@ -674,17 +674,17 @@ export default function AdminSettings() {
                                             w-full
                                             rounded-lg
                                             border
-                                            border-[#ddd0c1]
+                                            border-[#fdba74]
                                             bg-white
                                             px-3
                                             py-2.5
                                             text-sm
-                                            text-[#2a1d15]
+                                            text-[#292524]
                                             outline-none
                                             transition
-                                            focus:border-[#a8652c]
+                                            focus:border-[#ea580c]
                                             focus:ring-1
-                                            focus:ring-[#a8652c]
+                                            focus:ring-[#ea580c]
                                             sm:max-w-sm
                                         "
                                     />
@@ -702,8 +702,8 @@ export default function AdminSettings() {
                                 className="
                                     rounded-xl
                                     border
-                                    border-[#e5d7c5]
-                                    bg-[#fffdfb]
+                                    border-[#fed7aa]
+                                    bg-[#fffef9]
                                     p-5
                                 "
                             >
@@ -726,8 +726,8 @@ export default function AdminSettings() {
                                             items-center
                                             justify-center
                                             rounded-lg
-                                            bg-[#f1e3d3]
-                                            text-[#a8652c]
+                                            bg-[#ffedd5]
+                                            text-[#ea580c]
                                         "
                                     >
 
@@ -744,7 +744,7 @@ export default function AdminSettings() {
                                             className="
                                                 text-sm
                                                 font-semibold
-                                                text-[#2a1d15]
+                                                text-[#292524]
                                             "
                                         >
                                             Fine Per Day
@@ -755,7 +755,7 @@ export default function AdminSettings() {
                                             className="
                                                 mt-1
                                                 text-xs
-                                                text-[#9a8778]
+                                                text-[#a8a29e]
                                             "
                                         >
                                             Amount charged for each day
@@ -776,7 +776,7 @@ export default function AdminSettings() {
                                             block
                                             text-sm
                                             font-medium
-                                            text-[#463529]
+                                            text-[#44403c]
                                         "
                                     >
                                         Fine amount per day
@@ -797,7 +797,7 @@ export default function AdminSettings() {
                                                 top-1/2
                                                 -translate-y-1/2
                                                 text-sm
-                                                text-[#9a8778]
+                                                text-[#a8a29e]
                                             "
                                         >
                                             ₹
@@ -822,18 +822,18 @@ export default function AdminSettings() {
                                                 w-full
                                                 rounded-lg
                                                 border
-                                                border-[#ddd0c1]
+                                                border-[#fdba74]
                                                 bg-white
                                                 py-2.5
                                                 pl-8
                                                 pr-3
                                                 text-sm
-                                                text-[#2a1d15]
+                                                text-[#292524]
                                                 outline-none
                                                 transition
-                                                focus:border-[#a8652c]
+                                                focus:border-[#ea580c]
                                                 focus:ring-1
-                                                focus:ring-[#a8652c]
+                                                focus:ring-[#ea580c]
                                             "
                                         />
 
@@ -852,12 +852,12 @@ export default function AdminSettings() {
                                 className="
                                     rounded-lg
                                     border
-                                    border-[#e5d7c5]
-                                    bg-[#faf4ec]
+                                    border-[#fed7aa]
+                                    bg-[#fff8f0]
                                     px-4
                                     py-3
                                     text-sm
-                                    text-[#735e50]
+                                    text-[#78716c]
                                 "
                             >
 
@@ -866,7 +866,7 @@ export default function AdminSettings() {
                                     <span
                                         className="
                                             font-medium
-                                            text-[#463529]
+                                            text-[#44403c]
                                         "
                                     >
                                         Example:
@@ -877,7 +877,7 @@ export default function AdminSettings() {
                                     <span
                                         className="
                                             font-medium
-                                            text-[#2a1d15]
+                                            text-[#292524]
                                         "
                                     >
                                         14 days
@@ -888,7 +888,7 @@ export default function AdminSettings() {
                                     <span
                                         className="
                                             font-medium
-                                            text-[#2a1d15]
+                                            text-[#292524]
                                         "
                                     >
                                         ₹5 per day
@@ -910,7 +910,7 @@ export default function AdminSettings() {
                                     flex
                                     justify-end
                                     border-t
-                                    border-[#e5d7c5]
+                                    border-[#fed7aa]
                                     pt-5
                                 "
                             >
@@ -924,14 +924,14 @@ export default function AdminSettings() {
                                         justify-center
                                         gap-2
                                         rounded-lg
-                                        bg-[#a8652c]
+                                        bg-[#ea580c]
                                         px-5
                                         py-2.5
                                         text-sm
                                         font-medium
                                         text-white
                                         transition
-                                        hover:bg-[#8f501e]
+                                        hover:bg-[#c2410c]
                                         disabled:cursor-not-allowed
                                         disabled:opacity-50
                                     "

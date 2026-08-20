@@ -1,13 +1,20 @@
 import {
     BookOpen,
     LogOut,
-    User,
 } from "lucide-react";
+
+import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../context/AuthContext";
 
 
+// =========================================================
+// NAVBAR
+// =========================================================
+
 export default function Navbar() {
+
+    const navigate = useNavigate();
 
     const {
         user,
@@ -22,35 +29,99 @@ export default function Navbar() {
     function handleLogout() {
 
         logout();
+
+        navigate(
+            "/login",
+            {
+                replace: true,
+            }
+        );
     }
 
 
     // =====================================================
-    // UI
+    // DASHBOARD
+    // =====================================================
+
+    function goToDashboard() {
+
+        const role =
+            String(
+                user?.role || ""
+            ).toUpperCase();
+
+
+        if (role === "ADMIN") {
+
+            navigate("/admin");
+
+            return;
+        }
+
+
+        if (
+            role === "USER" ||
+            role === "MEMBER"
+        ) {
+
+            navigate("/member");
+
+            return;
+        }
+
+
+        navigate("/login");
+    }
+
+
+    // =====================================================
+    // USER INFORMATION
+    // =====================================================
+
+    const displayName =
+        user?.name ||
+        user?.email ||
+        "User";
+
+
+    const displayRole =
+        String(
+            user?.role || "USER"
+        ).toUpperCase();
+
+
+    // =====================================================
+    // RENDER
     // =====================================================
 
     return (
 
         <header
             className="
+                sticky
+                top-0
+                z-40
                 w-full
                 border-b
-                border-[#e5d7c5]
-                bg-[#faf4ec]
+                border-[#fed7aa]
+                bg-[#fff8f0]/95
+                backdrop-blur-md
+                transition-all
+                duration-300
             "
         >
 
             <div
                 className="
-                    mx-auto
                     flex
                     h-16
-                    max-w-7xl
+                    w-full
                     items-center
                     justify-between
                     px-4
                     sm:px-6
                     lg:px-8
+                    xl:px-10
                 "
             >
 
@@ -58,32 +129,55 @@ export default function Navbar() {
                     BRAND
                 ================================================= */}
 
-                <div
+                <button
+                    type="button"
+                    onClick={goToDashboard}
                     className="
+                        group
                         flex
                         items-center
-                        gap-2.5
+                        gap-3
+                        rounded-lg
+                        text-left
+                        outline-none
                     "
                 >
+
+                    {/* LOGO */}
 
                     <div
                         className="
                             flex
                             h-9
                             w-9
+                            shrink-0
                             items-center
                             justify-center
                             rounded-lg
-                            bg-[#a8652c]
+                            bg-[#ea580c]
                             text-white
                             shadow-sm
+                            transition-all
+                            duration-300
+                            group-hover:scale-105
+                            group-hover:shadow-md
                         "
                     >
 
-                        <BookOpen className="h-5 w-5" />
+                        <BookOpen
+                            className="
+                                h-5
+                                w-5
+                                transition-transform
+                                duration-300
+                                group-hover:rotate-[-5deg]
+                            "
+                        />
 
                     </div>
 
+
+                    {/* BRAND TEXT */}
 
                     <div>
 
@@ -91,148 +185,126 @@ export default function Navbar() {
                             className="
                                 text-sm
                                 font-semibold
-                                tracking-tight
-                                text-[#2a1d15]
+                                text-[#292524]
+                                transition-colors
+                                duration-300
+                                group-hover:text-[#ea580c]
                             "
                         >
-                            Aditya Library
+                            Library Fine Calculator
                         </p>
 
 
                         <p
                             className="
-                                hidden
-                                text-[10px]
-                                text-[#8e7b6d]
-                                sm:block
+                                text-[11px]
+                                text-[#a8a29e]
                             "
                         >
-                            Fine Calculator
+                            Fine & Borrowing Management
                         </p>
 
                     </div>
 
-                </div>
+                </button>
 
 
                 {/* =================================================
-                    USER SECTION
+                    RIGHT SIDE
                 ================================================= */}
 
                 <div
                     className="
                         flex
                         items-center
-                        gap-3
+                        gap-4
                     "
                 >
 
-                    {/* User information */}
+                    {/* =================================================
+                        USER DETAILS
+                        NO USER ICON
+                    ================================================= */}
 
                     <div
                         className="
                             hidden
-                            items-center
-                            gap-2
-                            sm:flex
+                            text-right
+                            sm:block
                         "
                     >
 
-                        <div
+                        <p
                             className="
-                                flex
-                                h-8
-                                w-8
-                                items-center
-                                justify-center
-                                rounded-full
-                                bg-[#ead8c4]
-                                text-[#79512f]
+                                max-w-[180px]
+                                truncate
+                                text-sm
+                                font-medium
+                                text-[#292524]
                             "
                         >
-
-                            <User className="h-4 w-4" />
-
-                        </div>
+                            {displayName}
+                        </p>
 
 
-                        <div>
-
-                            <p
-                                className="
-                                    text-xs
-                                    font-semibold
-                                    text-[#3d2b1f]
-                                "
-                            >
-                                {user?.name || "User"}
-                            </p>
-
-
-                            <p
-                                className="
-                                    text-[10px]
-                                    uppercase
-                                    tracking-wide
-                                    text-[#8e7b6d]
-                                "
-                            >
-                                {user?.role || "USER"}
-                            </p>
-
-                        </div>
+                        <p
+                            className="
+                                text-[11px]
+                                font-medium
+                                text-[#a8a29e]
+                            "
+                        >
+                            {displayRole}
+                        </p>
 
                     </div>
 
 
-                    {/* Mobile user name */}
-
-                    <div
-                        className="
-                            flex
-                            h-8
-                            w-8
-                            items-center
-                            justify-center
-                            rounded-full
-                            bg-[#ead8c4]
-                            text-[#79512f]
-                            sm:hidden
-                        "
-                    >
-
-                        <User className="h-4 w-4" />
-
-                    </div>
-
-
-                    {/* Logout */}
+                    {/* =================================================
+                        LOGOUT
+                    ================================================= */}
 
                     <button
                         type="button"
                         onClick={handleLogout}
                         className="
-                            flex
+                            group
+                            inline-flex
                             items-center
                             gap-2
                             rounded-lg
                             border
-                            border-[#dfd0c0]
+                            border-[#fdba74]
                             bg-white
                             px-3
                             py-2
-                            text-xs
+                            text-sm
                             font-medium
-                            text-[#6f4e37]
-                            transition
-                            hover:bg-[#f3e9dd]
-                            active:scale-[0.98]
+                            text-[#78716c]
+                            shadow-sm
+                            transition-all
+                            duration-300
+                            hover:-translate-y-0.5
+                            hover:border-[#fbbf24]
+                            hover:bg-[#ffedd5]
+                            hover:text-[#292524]
+                            hover:shadow-md
+                            active:translate-y-0
                         "
                     >
 
-                        <LogOut className="h-4 w-4" />
+                        <LogOut
+                            className="
+                                h-4
+                                w-4
+                                transition-transform
+                                duration-300
+                                group-hover:translate-x-0.5
+                            "
+                        />
 
-                        <span className="hidden sm:inline">
+
+                        <span>
                             Logout
                         </span>
 

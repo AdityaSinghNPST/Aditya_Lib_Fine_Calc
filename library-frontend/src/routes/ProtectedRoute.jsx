@@ -37,7 +37,7 @@ export default function ProtectedRoute({
                     w-full
                     items-center
                     justify-center
-                    bg-[#faf4ec]
+                    bg-[#fff8f0]
                 "
             >
 
@@ -56,15 +56,15 @@ export default function ProtectedRoute({
                             animate-spin
                             rounded-full
                             border-2
-                            border-[#e5d7c5]
-                            border-t-[#a8652c]
+                            border-[#fed7aa]
+                            border-t-[#ea580c]
                         "
                     />
 
                     <p
                         className="
                             text-sm
-                            text-[#735e50]
+                            text-[#78716c]
                         "
                     >
                         Checking authentication...

@@ -16,6 +16,11 @@ import Navbar from "../../components/layout/Navbar";
 
 import api from "../../services/api";
 
+import {
+    buildLookup,
+    normalizeList,
+} from "../../utils/lookups";
+
 
 // =========================================================
 // MEMBER BORROWINGS
@@ -28,6 +33,8 @@ export default function MemberBorrowings() {
     // =====================================================
 
     const [borrowings, setBorrowings] = useState([]);
+
+    const [bookMap, setBookMap] = useState(new Map());
 
     const [loading, setLoading] = useState(true);
 
@@ -57,8 +64,21 @@ export default function MemberBorrowings() {
              * belong to the current member.
              */
 
-            const data =
-                await api.borrowings.getMyBorrowings();
+            const [
+                borrowingsData,
+                booksData,
+            ] = await Promise.all([
+                api.borrowings.getAll(),
+                api.books.getAll({ page: 0, size: 1000 }),
+            ]);
+
+            setBookMap(
+                buildLookup(
+                    normalizeList(booksData)
+                )
+            );
+
+            const data = borrowingsData;
 
 
             // =================================================
@@ -130,14 +150,17 @@ export default function MemberBorrowings() {
         borrowing
     ) {
 
+        const book =
+            bookMap.get(
+                borrowing.bookId
+            );
+
         return (
             borrowing.bookTitle ||
-
-            borrowing.book?.title ||
-
-            borrowing.title ||
-
-            "Unknown Book"
+            book?.title ||
+            (borrowing.bookId
+                ? `Book #${borrowing.bookId}`
+                : "Unknown Book")
         );
     }
 
@@ -150,11 +173,14 @@ export default function MemberBorrowings() {
         borrowing
     ) {
 
+        const book =
+            bookMap.get(
+                borrowing.bookId
+            );
+
         return (
             borrowing.author ||
-
-            borrowing.book?.author ||
-
+            book?.author ||
             "Unknown Author"
         );
     }
@@ -457,7 +483,7 @@ export default function MemberBorrowings() {
             className="
                 min-h-screen
                 w-full
-                bg-[#faf4ec]
+                bg-[#fff8f0]
             "
         >
 
@@ -500,10 +526,10 @@ export default function MemberBorrowings() {
                         py-2
                         text-sm
                         font-medium
-                        text-[#735e50]
+                        text-[#78716c]
                         transition
-                        hover:bg-[#f1e3d3]
-                        hover:text-[#2a1d15]
+                        hover:bg-[#ffedd5]
+                        hover:text-[#292524]
                     "
                 >
 
@@ -529,7 +555,7 @@ export default function MemberBorrowings() {
                             font-medium
                             uppercase
                             tracking-wider
-                            text-[#a8652c]
+                            text-[#ea580c]
                         "
                     >
                         Member Area
@@ -540,7 +566,7 @@ export default function MemberBorrowings() {
                         className="
                             text-2xl
                             font-semibold
-                            text-[#2a1d15]
+                            text-[#292524]
                         "
                     >
                         My Borrowings
@@ -551,7 +577,7 @@ export default function MemberBorrowings() {
                         className="
                             mt-1
                             text-sm
-                            text-[#735e50]
+                            text-[#78716c]
                         "
                     >
                         Track the books you have borrowed and their due dates.
@@ -661,7 +687,7 @@ export default function MemberBorrowings() {
                         overflow-hidden
                         rounded-xl
                         border
-                        border-[#e5d7c5]
+                        border-[#fed7aa]
                         bg-white
                         shadow-sm
                     "
@@ -685,7 +711,7 @@ export default function MemberBorrowings() {
                             <p
                                 className="
                                     text-sm
-                                    text-[#735e50]
+                                    text-[#78716c]
                                 "
                             >
                                 Loading your borrowings...
@@ -719,8 +745,8 @@ export default function MemberBorrowings() {
                                     items-center
                                     justify-center
                                     rounded-full
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
+                                    bg-[#ffedd5]
+                                    text-[#ea580c]
                                 "
                             >
 
@@ -735,7 +761,7 @@ export default function MemberBorrowings() {
                                 className="
                                     text-lg
                                     font-medium
-                                    text-[#2a1d15]
+                                    text-[#292524]
                                 "
                             >
                                 No borrowings
@@ -747,7 +773,7 @@ export default function MemberBorrowings() {
                                     mt-1
                                     text-center
                                     text-sm
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                 "
                             >
                                 You haven't borrowed any books yet.
@@ -762,14 +788,14 @@ export default function MemberBorrowings() {
                                     items-center
                                     gap-2
                                     rounded-lg
-                                    bg-[#a8652c]
+                                    bg-[#ea580c]
                                     px-4
                                     py-2.5
                                     text-sm
                                     font-medium
                                     text-white
                                     transition
-                                    hover:bg-[#8f501e]
+                                    hover:bg-[#c2410c]
                                 "
                             >
                                 Browse Books
@@ -802,8 +828,8 @@ export default function MemberBorrowings() {
                                 <thead
                                     className="
                                         border-b
-                                        border-[#e5d7c5]
-                                        bg-[#fcf8f3]
+                                        border-[#fed7aa]
+                                        bg-[#fffbeb]
                                     "
                                 >
 
@@ -819,7 +845,7 @@ export default function MemberBorrowings() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Book
@@ -836,7 +862,7 @@ export default function MemberBorrowings() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Borrowed
@@ -853,7 +879,7 @@ export default function MemberBorrowings() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Due Date
@@ -870,7 +896,7 @@ export default function MemberBorrowings() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Status
@@ -887,7 +913,7 @@ export default function MemberBorrowings() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Action
@@ -929,7 +955,7 @@ export default function MemberBorrowings() {
                                                         border-b
                                                         border-[#eee5dc]
                                                         last:border-0
-                                                        hover:bg-[#fffaf5]
+                                                        hover:bg-[#fffbf5]
                                                     "
                                                 >
 
@@ -961,8 +987,8 @@ export default function MemberBorrowings() {
                                                                     items-center
                                                                     justify-center
                                                                     rounded-lg
-                                                                    bg-[#f1e3d3]
-                                                                    text-[#a8652c]
+                                                                    bg-[#ffedd5]
+                                                                    text-[#ea580c]
                                                                 "
                                                             >
 
@@ -980,7 +1006,7 @@ export default function MemberBorrowings() {
                                                                         whitespace-nowrap
                                                                         text-sm
                                                                         font-medium
-                                                                        text-[#2a1d15]
+                                                                        text-[#292524]
                                                                     "
                                                                 >
                                                                     {
@@ -996,7 +1022,7 @@ export default function MemberBorrowings() {
                                                                         mt-0.5
                                                                         whitespace-nowrap
                                                                         text-xs
-                                                                        text-[#9a8778]
+                                                                        text-[#a8a29e]
                                                                     "
                                                                 >
                                                                     {
@@ -1031,7 +1057,7 @@ export default function MemberBorrowings() {
                                                                 items-center
                                                                 gap-2
                                                                 text-sm
-                                                                text-[#735e50]
+                                                                text-[#78716c]
                                                             "
                                                         >
 
@@ -1039,7 +1065,7 @@ export default function MemberBorrowings() {
                                                                 className="
                                                                     h-4
                                                                     w-4
-                                                                    text-[#9a8778]
+                                                                    text-[#a8a29e]
                                                                 "
                                                             />
 
@@ -1075,7 +1101,7 @@ export default function MemberBorrowings() {
                                                                 ${
                                                                     overdue
                                                                         ? "font-medium text-red-600"
-                                                                        : "text-[#735e50]"
+                                                                        : "text-[#78716c]"
                                                                 }
                                                                 `
                                                             }
@@ -1219,14 +1245,14 @@ export default function MemberBorrowings() {
                                                                         items-center
                                                                         gap-2
                                                                         rounded-lg
-                                                                        bg-[#a8652c]
+                                                                        bg-[#ea580c]
                                                                         px-3
                                                                         py-2
                                                                         text-xs
                                                                         font-medium
                                                                         text-white
                                                                         transition
-                                                                        hover:bg-[#8f501e]
+                                                                        hover:bg-[#c2410c]
                                                                         disabled:cursor-not-allowed
                                                                         disabled:opacity-50
                                                                     "
@@ -1250,7 +1276,7 @@ export default function MemberBorrowings() {
                                                                 <span
                                                                     className="
                                                                         text-xs
-                                                                        text-[#9a8778]
+                                                                        text-[#a8a29e]
                                                                     "
                                                                 >
                                                                     Returned

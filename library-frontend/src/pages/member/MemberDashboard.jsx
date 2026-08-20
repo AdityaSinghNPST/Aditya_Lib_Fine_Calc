@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import {
     BookOpen,
     Clock3,
@@ -12,6 +14,10 @@ import Navbar from "../../components/layout/Navbar";
 
 import { useAuth } from "../../context/AuthContext";
 
+import api from "../../services/api";
+
+import { normalizeList } from "../../utils/lookups";
+
 
 // =========================================================
 // MEMBER DASHBOARD
@@ -25,6 +31,80 @@ export default function MemberDashboard() {
         user,
         logout,
     } = useAuth();
+
+    const [stats, setStats] = useState({
+        availableBooks: 0,
+        activeBorrowings: 0,
+        totalFines: 0,
+    });
+
+    const [loading, setLoading] = useState(true);
+
+
+    useEffect(() => {
+
+        async function loadStats() {
+
+            if (!user?.id) {
+
+                return;
+            }
+
+            try {
+
+                setLoading(true);
+
+                const [
+                    booksData,
+                    borrowingsData,
+                    finesData,
+                ] = await Promise.all([
+                    api.books.getAll({ page: 0, size: 1000 }),
+                    api.borrowings.getAll(),
+                    api.fines.getByUserId(user.id),
+                ]);
+
+                const books =
+                    normalizeList(booksData);
+
+                const borrowings =
+                    normalizeList(borrowingsData);
+
+                const fines =
+                    normalizeList(finesData);
+
+                setStats({
+                    availableBooks: books.filter(
+                        (book) => book.available
+                    ).length,
+                    activeBorrowings: borrowings.filter(
+                        (borrowing) =>
+                            borrowing.status !== "RETURNED" &&
+                            !borrowing.returnDate
+                    ).length,
+                    totalFines: fines.reduce(
+                        (total, fine) =>
+                            total + (Number(fine.amount) || 0),
+                        0
+                    ),
+                });
+
+            } catch (err) {
+
+                console.error(
+                    "Failed to load member stats:",
+                    err
+                );
+
+            } finally {
+
+                setLoading(false);
+            }
+        }
+
+        loadStats();
+
+    }, [user?.id]);
 
 
     // =====================================================
@@ -54,7 +134,7 @@ export default function MemberDashboard() {
             className="
                 min-h-screen
                 w-full
-                bg-[#faf4ec]
+                bg-[#fff8f0]
             "
         >
 
@@ -106,7 +186,7 @@ export default function MemberDashboard() {
                                 font-medium
                                 uppercase
                                 tracking-wider
-                                text-[#a8652c]
+                                text-[#ea580c]
                             "
                         >
                             Member Area
@@ -117,7 +197,7 @@ export default function MemberDashboard() {
                             className="
                                 text-3xl
                                 font-semibold
-                                text-[#2a1d15]
+                                text-[#292524]
                             "
                         >
                             Welcome
@@ -131,7 +211,7 @@ export default function MemberDashboard() {
                             className="
                                 mt-2
                                 text-sm
-                                text-[#735e50]
+                                text-[#78716c]
                             "
                         >
                             Manage your books, borrowings and fines.
@@ -155,16 +235,16 @@ export default function MemberDashboard() {
                             self-start
                             rounded-lg
                             border
-                            border-[#ddd0c1]
+                            border-[#fdba74]
                             bg-white
                             px-4
                             py-2.5
                             text-sm
                             font-medium
-                            text-[#735e50]
+                            text-[#78716c]
                             transition
-                            hover:bg-[#f1e3d3]
-                            hover:text-[#2a1d15]
+                            hover:bg-[#ffedd5]
+                            hover:text-[#292524]
                             sm:self-auto
                         "
                     >
@@ -176,6 +256,45 @@ export default function MemberDashboard() {
                         Logout
 
                     </button>
+
+                </div>
+
+
+                {/* =================================================
+                    STATS
+                ================================================= */}
+
+                <div className="mb-8 grid gap-4 sm:grid-cols-3">
+
+                    <div className="rounded-xl border border-[#fed7aa] bg-white p-5 shadow-sm">
+                        <p className="text-sm text-[#78716c]">Available Books</p>
+                        <p className="mt-2 text-2xl font-semibold text-[#292524]">
+                            {loading ? "…" : stats.availableBooks}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border border-[#fed7aa] bg-white p-5 shadow-sm">
+                        <p className="text-sm text-[#78716c]">Active Borrowings</p>
+                        <p className="mt-2 text-2xl font-semibold text-[#292524]">
+                            {loading ? "…" : stats.activeBorrowings}
+                        </p>
+                    </div>
+
+                    <div className="rounded-xl border border-[#fed7aa] bg-white p-5 shadow-sm">
+                        <p className="text-sm text-[#78716c]">Total Fines</p>
+                        <p className="mt-2 text-2xl font-semibold text-[#292524]">
+                            {loading
+                                ? "…"
+                                : new Intl.NumberFormat(
+                                    "en-IN",
+                                    {
+                                        style: "currency",
+                                        currency: "INR",
+                                        maximumFractionDigits: 0,
+                                    }
+                                ).format(stats.totalFines)}
+                        </p>
+                    </div>
 
                 </div>
 
@@ -203,7 +322,7 @@ export default function MemberDashboard() {
                             group
                             rounded-2xl
                             border
-                            border-[#e5d7c5]
+                            border-[#fed7aa]
                             bg-white
                             p-6
                             shadow-sm
@@ -229,8 +348,8 @@ export default function MemberDashboard() {
                                     items-center
                                     justify-center
                                     rounded-xl
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
+                                    bg-[#ffedd5]
+                                    text-[#ea580c]
                                 "
                             >
 
@@ -245,10 +364,10 @@ export default function MemberDashboard() {
                                 className="
                                     h-5
                                     w-5
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                     transition
                                     group-hover:translate-x-1
-                                    group-hover:text-[#a8652c]
+                                    group-hover:text-[#ea580c]
                                 "
                             />
 
@@ -260,7 +379,7 @@ export default function MemberDashboard() {
                                 mt-6
                                 text-lg
                                 font-semibold
-                                text-[#2a1d15]
+                                text-[#292524]
                             "
                         >
                             Browse Books
@@ -272,7 +391,7 @@ export default function MemberDashboard() {
                                 mt-2
                                 text-sm
                                 leading-6
-                                text-[#735e50]
+                                text-[#78716c]
                             "
                         >
                             View available books and borrow
@@ -292,7 +411,7 @@ export default function MemberDashboard() {
                             group
                             rounded-2xl
                             border
-                            border-[#e5d7c5]
+                            border-[#fed7aa]
                             bg-white
                             p-6
                             shadow-sm
@@ -318,8 +437,8 @@ export default function MemberDashboard() {
                                     items-center
                                     justify-center
                                     rounded-xl
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
+                                    bg-[#ffedd5]
+                                    text-[#ea580c]
                                 "
                             >
 
@@ -334,10 +453,10 @@ export default function MemberDashboard() {
                                 className="
                                     h-5
                                     w-5
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                     transition
                                     group-hover:translate-x-1
-                                    group-hover:text-[#a8652c]
+                                    group-hover:text-[#ea580c]
                                 "
                             />
 
@@ -349,7 +468,7 @@ export default function MemberDashboard() {
                                 mt-6
                                 text-lg
                                 font-semibold
-                                text-[#2a1d15]
+                                text-[#292524]
                             "
                         >
                             My Borrowings
@@ -361,7 +480,7 @@ export default function MemberDashboard() {
                                 mt-2
                                 text-sm
                                 leading-6
-                                text-[#735e50]
+                                text-[#78716c]
                             "
                         >
                             Check the books you currently
@@ -381,7 +500,7 @@ export default function MemberDashboard() {
                             group
                             rounded-2xl
                             border
-                            border-[#e5d7c5]
+                            border-[#fed7aa]
                             bg-white
                             p-6
                             shadow-sm
@@ -407,8 +526,8 @@ export default function MemberDashboard() {
                                     items-center
                                     justify-center
                                     rounded-xl
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
+                                    bg-[#ffedd5]
+                                    text-[#ea580c]
                                 "
                             >
 
@@ -423,10 +542,10 @@ export default function MemberDashboard() {
                                 className="
                                     h-5
                                     w-5
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                     transition
                                     group-hover:translate-x-1
-                                    group-hover:text-[#a8652c]
+                                    group-hover:text-[#ea580c]
                                 "
                             />
 
@@ -438,7 +557,7 @@ export default function MemberDashboard() {
                                 mt-6
                                 text-lg
                                 font-semibold
-                                text-[#2a1d15]
+                                text-[#292524]
                             "
                         >
                             My Fines
@@ -450,7 +569,7 @@ export default function MemberDashboard() {
                                 mt-2
                                 text-sm
                                 leading-6
-                                text-[#735e50]
+                                text-[#78716c]
                             "
                         >
                             View any automatically generated
@@ -471,7 +590,7 @@ export default function MemberDashboard() {
                         mt-8
                         rounded-2xl
                         border
-                        border-[#e5d7c5]
+                        border-[#fed7aa]
                         bg-white
                         p-6
                         shadow-sm
@@ -495,7 +614,7 @@ export default function MemberDashboard() {
                                 className="
                                     text-lg
                                     font-semibold
-                                    text-[#2a1d15]
+                                    text-[#292524]
                                 "
                             >
                                 Library Information
@@ -508,7 +627,7 @@ export default function MemberDashboard() {
                                     max-w-2xl
                                     text-sm
                                     leading-6
-                                    text-[#735e50]
+                                    text-[#78716c]
                                 "
                             >
                                 Borrow books, keep track of your
@@ -527,14 +646,14 @@ export default function MemberDashboard() {
                                 justify-center
                                 gap-2
                                 rounded-lg
-                                bg-[#a8652c]
+                                bg-[#ea580c]
                                 px-4
                                 py-2.5
                                 text-sm
                                 font-medium
                                 text-white
                                 transition
-                                hover:bg-[#8f501e]
+                                hover:bg-[#c2410c]
                             "
                         >
 

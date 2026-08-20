@@ -8,6 +8,7 @@ import {
     AlertCircle,
     X,
     Library,
+    RotateCcw,
 } from "lucide-react";
 
 import { Link } from "react-router-dom";
@@ -15,6 +16,8 @@ import { Link } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 
 import api from "../../services/api";
+
+import { normalizeList } from "../../utils/lookups";
 
 
 // =========================================================
@@ -31,7 +34,12 @@ export default function MemberBooks() {
 
     const [loading, setLoading] = useState(true);
 
-    const [borrowingId, setBorrowingId] = useState(null);
+    const [borrowingBookId, setBorrowingBookId] = useState(null);
+
+    const [returningBorrowingId, setReturningBorrowingId] = useState(null);
+
+    const [activeBorrowingByBookId, setActiveBorrowingByBookId] =
+        useState(new Map());
 
 
     // =====================================================
@@ -39,6 +47,8 @@ export default function MemberBooks() {
     // =====================================================
 
     const [search, setSearch] = useState("");
+
+    const [authorSearch, setAuthorSearch] = useState("");
 
 
     // =====================================================
@@ -76,16 +86,47 @@ export default function MemberBooks() {
             setError("");
 
 
-            const data =
-                await api.books.getAll({
-
+            const [
+                booksData,
+                borrowingsData,
+            ] = await Promise.all([
+                api.books.getAll({
                     page,
-
                     size: pageSize,
-
                     title: search,
+                    author: authorSearch,
+                }),
+                api.borrowings.getAll(),
+            ]);
 
-                });
+            const data = booksData;
+
+            const borrowings =
+                normalizeList(borrowingsData);
+
+            const borrowingMap =
+                new Map();
+
+            borrowings.forEach((borrowing) => {
+
+                if (
+                    isActiveBorrowing(
+                        borrowing
+                    ) &&
+                    borrowing.bookId !=
+                        null
+                ) {
+
+                    borrowingMap.set(
+                        borrowing.bookId,
+                        borrowing
+                    );
+                }
+            });
+
+            setActiveBorrowingByBookId(
+                borrowingMap
+            );
 
 
             // =================================================
@@ -163,7 +204,7 @@ export default function MemberBooks() {
 
         loadBooks();
 
-    }, [page, search]);
+    }, [page, search, authorSearch]);
 
 
     // =====================================================
@@ -180,56 +221,70 @@ export default function MemberBooks() {
     }
 
 
+    function handleAuthorSearch(event) {
+
+        setAuthorSearch(
+            event.target.value
+        );
+
+        setPage(0);
+    }
+
+
+    // =====================================================
+    // BORROWING HELPERS
+    // =====================================================
+
+    function isActiveBorrowing(
+        borrowing
+    ) {
+
+        if (
+            borrowing.returnDate
+        ) {
+
+            return false;
+        }
+
+        if (
+            borrowing.returned ===
+            true
+        ) {
+
+            return false;
+        }
+
+        if (
+            String(
+                borrowing.status || ""
+            ).toUpperCase() ===
+            "RETURNED"
+        ) {
+
+            return false;
+        }
+
+        return true;
+    }
+
+
+    function getMyBorrowing(
+        bookId
+    ) {
+
+        return activeBorrowingByBookId.get(
+            bookId
+        );
+    }
+
+
     // =====================================================
     // CHECK AVAILABILITY
     // =====================================================
 
     function isAvailable(book) {
 
-        if (
-            typeof book.available ===
-            "boolean"
-        ) {
-
-            return book.available;
-        }
-
-
-        if (
-            typeof book.isAvailable ===
-            "boolean"
-        ) {
-
-            return book.isAvailable;
-        }
-
-
-        if (
-            typeof book.availableCopies ===
-            "number"
-        ) {
-
-            return book.availableCopies > 0;
-        }
-
-
-        if (
-            typeof book.copiesAvailable ===
-            "number"
-        ) {
-
-            return book.copiesAvailable > 0;
-        }
-
-
-        /*
-         * If the backend does not provide
-         * availability, don't prevent
-         * the member from attempting
-         * to borrow the book.
-         */
-
-        return true;
+        return book?.available === true;
     }
 
 
@@ -263,7 +318,7 @@ export default function MemberBooks() {
 
         try {
 
-            setBorrowingId(
+            setBorrowingBookId(
                 book.id
             );
 
@@ -309,7 +364,88 @@ export default function MemberBooks() {
 
         } finally {
 
-            setBorrowingId(null);
+            setBorrowingBookId(null);
+        }
+    }
+
+
+    // =====================================================
+    // RETURN BOOK
+    // =====================================================
+
+    async function handleReturn(
+        borrowing,
+        bookTitle
+    ) {
+
+        if (!borrowing?.id) {
+
+            setError(
+                "Borrowing record not found."
+            );
+
+            return;
+        }
+
+
+        const confirmed =
+            window.confirm(
+                `Are you sure you want to return "${bookTitle}"?`
+            );
+
+
+        if (!confirmed) {
+
+            return;
+        }
+
+
+        try {
+
+            setReturningBorrowingId(
+                borrowing.id
+            );
+
+            setError("");
+
+            setSuccess("");
+
+
+            await api.borrowings.returnBook(
+                borrowing.id
+            );
+
+
+            setSuccess(
+                `"${bookTitle}" was returned successfully.`
+            );
+
+
+            await loadBooks();
+
+
+            setTimeout(() => {
+
+                setSuccess("");
+
+            }, 4000);
+
+        } catch (err) {
+
+            console.error(
+                "Failed to return book:",
+                err
+            );
+
+
+            setError(
+                err.message ||
+                "Unable to return this book."
+            );
+
+        } finally {
+
+            setReturningBorrowingId(null);
         }
     }
 
@@ -342,7 +478,7 @@ export default function MemberBooks() {
             className="
                 min-h-screen
                 w-full
-                bg-[#faf4ec]
+                bg-[#fff8f0]
             "
         >
 
@@ -385,10 +521,10 @@ export default function MemberBooks() {
                         py-2
                         text-sm
                         font-medium
-                        text-[#735e50]
+                        text-[#78716c]
                         transition
-                        hover:bg-[#f1e3d3]
-                        hover:text-[#2a1d15]
+                        hover:bg-[#ffedd5]
+                        hover:text-[#292524]
                     "
                 >
 
@@ -426,7 +562,7 @@ export default function MemberBooks() {
                                 font-medium
                                 uppercase
                                 tracking-wider
-                                text-[#a8652c]
+                                text-[#ea580c]
                             "
                         >
                             Member Area
@@ -437,7 +573,7 @@ export default function MemberBooks() {
                             className="
                                 text-2xl
                                 font-semibold
-                                text-[#2a1d15]
+                                text-[#292524]
                             "
                         >
                             Browse Books
@@ -448,7 +584,7 @@ export default function MemberBooks() {
                             className="
                                 mt-1
                                 text-sm
-                                text-[#735e50]
+                                text-[#78716c]
                             "
                         >
                             Find a book and borrow it from the library.
@@ -464,12 +600,12 @@ export default function MemberBooks() {
                             gap-2
                             rounded-lg
                             border
-                            border-[#e5d7c5]
+                            border-[#fed7aa]
                             bg-white
                             px-4
                             py-2.5
                             text-sm
-                            text-[#735e50]
+                            text-[#78716c]
                         "
                     >
 
@@ -477,7 +613,7 @@ export default function MemberBooks() {
                             className="
                                 h-4
                                 w-4
-                                text-[#a8652c]
+                                text-[#ea580c]
                             "
                         />
 
@@ -593,53 +729,94 @@ export default function MemberBooks() {
                         mb-5
                         rounded-xl
                         border
-                        border-[#e5d7c5]
+                        border-[#fed7aa]
                         bg-white
                         p-4
                         shadow-sm
                     "
                 >
 
-                    <div className="relative">
+                    <div className="grid gap-3 sm:grid-cols-2">
 
-                        <Search
-                            className="
-                                absolute
-                                left-3
-                                top-1/2
-                                h-4
-                                w-4
-                                -translate-y-1/2
-                                text-[#9a8778]
-                            "
-                        />
+                        <div className="relative">
 
+                            <Search
+                                className="
+                                    absolute
+                                    left-3
+                                    top-1/2
+                                    h-4
+                                    w-4
+                                    -translate-y-1/2
+                                    text-[#a8a29e]
+                                "
+                            />
 
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={
-                                handleSearch
-                            }
-                            placeholder="Search books by title..."
-                            className="
-                                w-full
-                                rounded-lg
-                                border
-                                border-[#ddd0c1]
-                                bg-[#fffdfb]
-                                py-2.5
-                                pl-9
-                                pr-3
-                                text-sm
-                                text-[#2a1d15]
-                                outline-none
-                                transition
-                                focus:border-[#a8652c]
-                                focus:ring-1
-                                focus:ring-[#a8652c]
-                            "
-                        />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={handleSearch}
+                                placeholder="Search by title..."
+                                className="
+                                    w-full
+                                    rounded-lg
+                                    border
+                                    border-[#fdba74]
+                                    bg-[#fffef9]
+                                    py-2.5
+                                    pl-9
+                                    pr-3
+                                    text-sm
+                                    text-[#292524]
+                                    outline-none
+                                    transition
+                                    focus:border-[#ea580c]
+                                    focus:ring-1
+                                    focus:ring-[#ea580c]
+                                "
+                            />
+
+                        </div>
+
+                        <div className="relative">
+
+                            <Search
+                                className="
+                                    absolute
+                                    left-3
+                                    top-1/2
+                                    h-4
+                                    w-4
+                                    -translate-y-1/2
+                                    text-[#a8a29e]
+                                "
+                            />
+
+                            <input
+                                type="text"
+                                value={authorSearch}
+                                onChange={handleAuthorSearch}
+                                placeholder="Search by author..."
+                                className="
+                                    w-full
+                                    rounded-lg
+                                    border
+                                    border-[#fdba74]
+                                    bg-[#fffef9]
+                                    py-2.5
+                                    pl-9
+                                    pr-3
+                                    text-sm
+                                    text-[#292524]
+                                    outline-none
+                                    transition
+                                    focus:border-[#ea580c]
+                                    focus:ring-1
+                                    focus:ring-[#ea580c]
+                                "
+                            />
+
+                        </div>
 
                     </div>
 
@@ -655,7 +832,7 @@ export default function MemberBooks() {
                         overflow-hidden
                         rounded-xl
                         border
-                        border-[#e5d7c5]
+                        border-[#fed7aa]
                         bg-white
                         shadow-sm
                     "
@@ -675,7 +852,7 @@ export default function MemberBooks() {
                             <p
                                 className="
                                     text-sm
-                                    text-[#735e50]
+                                    text-[#78716c]
                                 "
                             >
                                 Loading books...
@@ -705,8 +882,8 @@ export default function MemberBooks() {
                                     items-center
                                     justify-center
                                     rounded-full
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
+                                    bg-[#ffedd5]
+                                    text-[#ea580c]
                                 "
                             >
 
@@ -720,7 +897,7 @@ export default function MemberBooks() {
                             <h3
                                 className="
                                     font-medium
-                                    text-[#2a1d15]
+                                    text-[#292524]
                                 "
                             >
                                 No books found
@@ -731,7 +908,7 @@ export default function MemberBooks() {
                                 className="
                                     mt-1
                                     text-sm
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                 "
                             >
                                 Try a different search.
@@ -758,8 +935,8 @@ export default function MemberBooks() {
                                 <thead
                                     className="
                                         border-b
-                                        border-[#e5d7c5]
-                                        bg-[#fcf8f3]
+                                        border-[#fed7aa]
+                                        bg-[#fffbeb]
                                     "
                                 >
 
@@ -774,7 +951,7 @@ export default function MemberBooks() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Book
@@ -790,7 +967,7 @@ export default function MemberBooks() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Author
@@ -806,7 +983,7 @@ export default function MemberBooks() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Availability
@@ -822,7 +999,7 @@ export default function MemberBooks() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Action
@@ -840,6 +1017,11 @@ export default function MemberBooks() {
                                     {books.map(
                                         (book) => {
 
+                                            const myBorrowing =
+                                                getMyBorrowing(
+                                                    book.id
+                                                );
+
                                             const available =
                                                 isAvailable(
                                                     book
@@ -856,7 +1038,7 @@ export default function MemberBooks() {
                                                         border-b
                                                         border-[#eee5dc]
                                                         last:border-0
-                                                        hover:bg-[#fffaf5]
+                                                        hover:bg-[#fffbf5]
                                                     "
                                                 >
 
@@ -886,8 +1068,8 @@ export default function MemberBooks() {
                                                                     items-center
                                                                     justify-center
                                                                     rounded-lg
-                                                                    bg-[#f1e3d3]
-                                                                    text-[#a8652c]
+                                                                    bg-[#ffedd5]
+                                                                    text-[#ea580c]
                                                                 "
                                                             >
 
@@ -907,7 +1089,7 @@ export default function MemberBooks() {
                                                                         whitespace-nowrap
                                                                         text-sm
                                                                         font-medium
-                                                                        text-[#2a1d15]
+                                                                        text-[#292524]
                                                                     "
                                                                 >
                                                                     {
@@ -921,7 +1103,7 @@ export default function MemberBooks() {
                                                                     className="
                                                                         mt-0.5
                                                                         text-xs
-                                                                        text-[#9a8778]
+                                                                        text-[#a8a29e]
                                                                     "
                                                                 >
                                                                     Book #
@@ -943,7 +1125,7 @@ export default function MemberBooks() {
                                                             px-5
                                                             py-4
                                                             text-sm
-                                                            text-[#735e50]
+                                                            text-[#78716c]
                                                         "
                                                     >
 
@@ -965,7 +1147,24 @@ export default function MemberBooks() {
                                                         "
                                                     >
 
-                                                        {available ? (
+                                                        {myBorrowing ? (
+
+                                                            <span
+                                                                className="
+                                                                    inline-flex
+                                                                    rounded-full
+                                                                    bg-[#ffedd5]
+                                                                    px-2.5
+                                                                    py-1
+                                                                    text-xs
+                                                                    font-medium
+                                                                    text-[#c2410c]
+                                                                "
+                                                            >
+                                                                Borrowed by you
+                                                            </span>
+
+                                                        ) : available ? (
 
                                                             <span
                                                                 className="
@@ -996,7 +1195,7 @@ export default function MemberBooks() {
                                                                     text-red-700
                                                                 "
                                                             >
-                                                                Currently Borrowed
+                                                                Not Available
                                                             </span>
 
                                                         )}
@@ -1021,39 +1220,97 @@ export default function MemberBooks() {
                                                             "
                                                         >
 
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    handleBorrow(
-                                                                        book
-                                                                    )
-                                                                }
-                                                                disabled={
-                                                                    !available ||
-                                                                    borrowingId ===
+                                                            {myBorrowing ? (
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleReturn(
+                                                                            myBorrowing,
+                                                                            book.title ||
+                                                                                "this book"
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        returningBorrowingId ===
+                                                                        myBorrowing.id
+                                                                    }
+                                                                    className="
+                                                                        inline-flex
+                                                                        items-center
+                                                                        gap-2
+                                                                        rounded-lg
+                                                                        bg-[#ea580c]
+                                                                        px-4
+                                                                        py-2
+                                                                        text-xs
+                                                                        font-medium
+                                                                        text-white
+                                                                        transition
+                                                                        hover:bg-[#c2410c]
+                                                                        disabled:cursor-not-allowed
+                                                                        disabled:opacity-50
+                                                                    "
+                                                                >
+
+                                                                    <RotateCcw
+                                                                        className="h-3.5 w-3.5"
+                                                                    />
+
+                                                                    {returningBorrowingId ===
+                                                                    myBorrowing.id
+                                                                        ? "Returning..."
+                                                                        : "Return Book"}
+
+                                                                </button>
+
+                                                            ) : available ? (
+
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleBorrow(
+                                                                            book
+                                                                        )
+                                                                    }
+                                                                    disabled={
+                                                                        borrowingBookId ===
+                                                                        book.id
+                                                                    }
+                                                                    className="
+                                                                        rounded-lg
+                                                                        bg-[#ea580c]
+                                                                        px-4
+                                                                        py-2
+                                                                        text-xs
+                                                                        font-medium
+                                                                        text-white
+                                                                        transition
+                                                                        hover:bg-[#c2410c]
+                                                                        disabled:cursor-not-allowed
+                                                                        disabled:opacity-40
+                                                                    "
+                                                                >
+
+                                                                    {borrowingBookId ===
                                                                     book.id
-                                                                }
-                                                                className="
-                                                                    rounded-lg
-                                                                    bg-[#a8652c]
-                                                                    px-4
-                                                                    py-2
-                                                                    text-xs
-                                                                    font-medium
-                                                                    text-white
-                                                                    transition
-                                                                    hover:bg-[#8f501e]
-                                                                    disabled:cursor-not-allowed
-                                                                    disabled:opacity-40
-                                                                "
-                                                            >
+                                                                        ? "Borrowing..."
+                                                                        : "Borrow Book"}
 
-                                                                {borrowingId ===
-                                                                book.id
-                                                                    ? "Borrowing..."
-                                                                    : "Borrow Book"}
+                                                                </button>
 
-                                                            </button>
+                                                            ) : (
+
+                                                                <span
+                                                                    className="
+                                                                        text-xs
+                                                                        text-[#a8a29e]
+                                                                    "
+                                                                >
+                                                                    Unavailable
+                                                                </span>
+
+                                                            )}
 
                                                         </div>
 
@@ -1099,7 +1356,7 @@ export default function MemberBooks() {
                             <p
                                 className="
                                     text-sm
-                                    text-[#735e50]
+                                    text-[#78716c]
                                 "
                             >
 
@@ -1108,7 +1365,7 @@ export default function MemberBooks() {
                                 <span
                                     className="
                                         font-medium
-                                        text-[#2a1d15]
+                                        text-[#292524]
                                     "
                                 >
                                     {page + 1}
@@ -1119,7 +1376,7 @@ export default function MemberBooks() {
                                 <span
                                     className="
                                         font-medium
-                                        text-[#2a1d15]
+                                        text-[#292524]
                                     "
                                 >
                                     {totalPages}
@@ -1152,15 +1409,15 @@ export default function MemberBooks() {
                                     className="
                                         rounded-lg
                                         border
-                                        border-[#ddd0c1]
+                                        border-[#fdba74]
                                         bg-white
                                         px-4
                                         py-2
                                         text-sm
                                         font-medium
-                                        text-[#735e50]
+                                        text-[#78716c]
                                         transition
-                                        hover:bg-[#f5ede3]
+                                        hover:bg-[#fff7ed]
                                         disabled:cursor-not-allowed
                                         disabled:opacity-40
                                     "
@@ -1186,14 +1443,14 @@ export default function MemberBooks() {
                                     }
                                     className="
                                         rounded-lg
-                                        bg-[#a8652c]
+                                        bg-[#ea580c]
                                         px-4
                                         py-2
                                         text-sm
                                         font-medium
                                         text-white
                                         transition
-                                        hover:bg-[#8f501e]
+                                        hover:bg-[#c2410c]
                                         disabled:cursor-not-allowed
                                         disabled:opacity-40
                                     "

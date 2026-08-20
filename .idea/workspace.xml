@@ -5,7 +5,30 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="28a3d51f-ab09-466f-8dba-1577e887a0a0" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/library/Aditya_Lib_Fine_Calc/book/controller/BookController.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/library/Aditya_Lib_Fine_Calc/book/controller/BookController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/library/Aditya_Lib_Fine_Calc/book/service/BookService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/library/Aditya_Lib_Fine_Calc/book/service/BookService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/java/com/library/Aditya_Lib_Fine_Calc/borrowing/service/BorrowingService.java" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/java/com/library/Aditya_Lib_Fine_Calc/borrowing/service/BorrowingService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/data/books.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/data/books.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/data/borrowings.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/data/borrowings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/src/main/resources/data/users.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/src/main/resources/data/users.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/library-frontend/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/App.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/components/auth/LoginView.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/components/auth/LoginView.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/components/layout/Navbar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/components/layout/Navbar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/index.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/layout/Navbar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/layout/Navbar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminBooks.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminBooks.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminBorrowings.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminBorrowings.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminDashboard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminDashboard.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminFines.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminFines.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminSettings.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminSettings.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminUser.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/pages/admin/AdminUser.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/pages/member/MemberBooks.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/pages/member/MemberBooks.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/pages/member/MemberBorrowings.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/pages/member/MemberBorrowings.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/pages/member/MemberDashboard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/pages/member/MemberDashboard.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/pages/member/MemberFines.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/pages/member/MemberFines.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/routes/ProtectedRoute.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/routes/ProtectedRoute.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/library-frontend/src/services/api.js" beforeDir="false" afterPath="$PROJECT_DIR$/library-frontend/src/services/api.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

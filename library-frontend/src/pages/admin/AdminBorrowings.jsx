@@ -15,6 +15,11 @@ import Navbar from "../../components/layout/Navbar";
 
 import api from "../../services/api";
 
+import {
+    buildLookup,
+    normalizeList,
+} from "../../utils/lookups";
+
 
 // =========================================================
 // ADMIN BORROWINGS PAGE
@@ -27,6 +32,10 @@ export default function AdminBorrowings() {
     // =====================================================
 
     const [borrowings, setBorrowings] = useState([]);
+
+    const [bookMap, setBookMap] = useState(new Map());
+
+    const [userMap, setUserMap] = useState(new Map());
 
     const [loading, setLoading] = useState(true);
 
@@ -50,8 +59,29 @@ export default function AdminBorrowings() {
             setError("");
 
 
-            const data =
-                await api.borrowings.getAll();
+            const [
+                borrowingsData,
+                booksData,
+                usersData,
+            ] = await Promise.all([
+                api.borrowings.getAll(),
+                api.books.getAll({ page: 0, size: 1000 }),
+                api.users.getAll(),
+            ]);
+
+            setBookMap(
+                buildLookup(
+                    normalizeList(booksData)
+                )
+            );
+
+            setUserMap(
+                buildLookup(
+                    normalizeList(usersData)
+                )
+            );
+
+            const data = borrowingsData;
 
 
             // =================================================
@@ -221,16 +251,18 @@ export default function AdminBorrowings() {
         borrowing
     ) {
 
+        const book =
+            bookMap.get(
+                borrowing.bookId
+            );
+
         return (
             borrowing.bookTitle ||
-
+            book?.title ||
             borrowing.book?.title ||
-
-            borrowing.book?.name ||
-
-            borrowing.title ||
-
-            "Unknown Book"
+            (borrowing.bookId
+                ? `Book #${borrowing.bookId}`
+                : "Unknown Book")
         );
     }
 
@@ -243,11 +275,15 @@ export default function AdminBorrowings() {
         borrowing
     ) {
 
+        const book =
+            bookMap.get(
+                borrowing.bookId
+            );
+
         return (
             borrowing.author ||
-
+            book?.author ||
             borrowing.book?.author ||
-
             "Unknown"
         );
     }
@@ -261,20 +297,18 @@ export default function AdminBorrowings() {
         borrowing
     ) {
 
+        const member =
+            userMap.get(
+                borrowing.userId
+            );
+
         return (
             borrowing.userName ||
-
+            member?.name ||
             borrowing.user?.name ||
-
-            borrowing.memberName ||
-
-            borrowing.member?.name ||
-
-            borrowing.user?.email ||
-
-            borrowing.member?.email ||
-
-            "Unknown User"
+            (borrowing.userId
+                ? `User #${borrowing.userId}`
+                : "Unknown User")
         );
     }
 
@@ -287,13 +321,15 @@ export default function AdminBorrowings() {
         borrowing
     ) {
 
+        const member =
+            userMap.get(
+                borrowing.userId
+            );
+
         return (
             borrowing.email ||
-
+            member?.email ||
             borrowing.user?.email ||
-
-            borrowing.member?.email ||
-
             "—"
         );
     }
@@ -522,7 +558,7 @@ export default function AdminBorrowings() {
             className="
                 min-h-screen
                 w-full
-                bg-[#faf4ec]
+                bg-[#fff8f0]
             "
         >
 
@@ -565,10 +601,10 @@ export default function AdminBorrowings() {
                         py-2
                         text-sm
                         font-medium
-                        text-[#735e50]
+                        text-[#78716c]
                         transition
-                        hover:bg-[#f1e3d3]
-                        hover:text-[#2a1d15]
+                        hover:bg-[#ffedd5]
+                        hover:text-[#292524]
                     "
                 >
 
@@ -606,7 +642,7 @@ export default function AdminBorrowings() {
                                 font-medium
                                 uppercase
                                 tracking-wider
-                                text-[#a8652c]
+                                text-[#ea580c]
                             "
                         >
                             Administration
@@ -617,7 +653,7 @@ export default function AdminBorrowings() {
                             className="
                                 text-2xl
                                 font-semibold
-                                text-[#2a1d15]
+                                text-[#292524]
                             "
                         >
                             Borrowings
@@ -628,7 +664,7 @@ export default function AdminBorrowings() {
                             className="
                                 mt-1
                                 text-sm
-                                text-[#735e50]
+                                text-[#78716c]
                             "
                         >
                             View all borrowed books and manage returns.
@@ -645,7 +681,7 @@ export default function AdminBorrowings() {
                             className="
                                 rounded-lg
                                 border
-                                border-[#e5d7c5]
+                                border-[#fed7aa]
                                 bg-white
                                 px-4
                                 py-3
@@ -655,7 +691,7 @@ export default function AdminBorrowings() {
                             <p
                                 className="
                                     text-xs
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                 "
                             >
                                 Total Records
@@ -667,7 +703,7 @@ export default function AdminBorrowings() {
                                     mt-0.5
                                     text-lg
                                     font-semibold
-                                    text-[#2a1d15]
+                                    text-[#292524]
                                 "
                             >
                                 {borrowings.length}
@@ -785,7 +821,7 @@ export default function AdminBorrowings() {
                         overflow-hidden
                         rounded-xl
                         border
-                        border-[#e5d7c5]
+                        border-[#fed7aa]
                         bg-white
                         shadow-sm
                     "
@@ -809,7 +845,7 @@ export default function AdminBorrowings() {
                             <p
                                 className="
                                     text-sm
-                                    text-[#735e50]
+                                    text-[#78716c]
                                 "
                             >
                                 Loading borrowing records...
@@ -843,8 +879,8 @@ export default function AdminBorrowings() {
                                     items-center
                                     justify-center
                                     rounded-full
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
+                                    bg-[#ffedd5]
+                                    text-[#ea580c]
                                 "
                             >
 
@@ -858,7 +894,7 @@ export default function AdminBorrowings() {
                             <h3
                                 className="
                                     font-medium
-                                    text-[#2a1d15]
+                                    text-[#292524]
                                 "
                             >
                                 No borrowing records
@@ -870,7 +906,7 @@ export default function AdminBorrowings() {
                                     mt-1
                                     text-center
                                     text-sm
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                 "
                             >
                                 There are currently no borrowing records.
@@ -903,8 +939,8 @@ export default function AdminBorrowings() {
                                 <thead
                                     className="
                                         border-b
-                                        border-[#e5d7c5]
-                                        bg-[#fcf8f3]
+                                        border-[#fed7aa]
+                                        bg-[#fffbeb]
                                     "
                                 >
 
@@ -920,7 +956,7 @@ export default function AdminBorrowings() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Book
@@ -937,7 +973,7 @@ export default function AdminBorrowings() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Member
@@ -954,7 +990,7 @@ export default function AdminBorrowings() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Borrowed
@@ -971,7 +1007,7 @@ export default function AdminBorrowings() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Due Date
@@ -988,7 +1024,7 @@ export default function AdminBorrowings() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Status
@@ -1005,7 +1041,7 @@ export default function AdminBorrowings() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Action
@@ -1065,7 +1101,7 @@ export default function AdminBorrowings() {
                                                         border-b
                                                         border-[#eee5dc]
                                                         last:border-0
-                                                        hover:bg-[#fffaf5]
+                                                        hover:bg-[#fffbf5]
                                                     "
                                                 >
 
@@ -1097,8 +1133,8 @@ export default function AdminBorrowings() {
                                                                     items-center
                                                                     justify-center
                                                                     rounded-lg
-                                                                    bg-[#f1e3d3]
-                                                                    text-[#a8652c]
+                                                                    bg-[#ffedd5]
+                                                                    text-[#ea580c]
                                                                 "
                                                             >
 
@@ -1119,7 +1155,7 @@ export default function AdminBorrowings() {
                                                                         whitespace-nowrap
                                                                         text-sm
                                                                         font-medium
-                                                                        text-[#2a1d15]
+                                                                        text-[#292524]
                                                                     "
                                                                 >
                                                                     {
@@ -1133,7 +1169,7 @@ export default function AdminBorrowings() {
                                                                         mt-0.5
                                                                         whitespace-nowrap
                                                                         text-xs
-                                                                        text-[#9a8778]
+                                                                        text-[#a8a29e]
                                                                     "
                                                                 >
                                                                     {
@@ -1178,10 +1214,10 @@ export default function AdminBorrowings() {
                                                                     items-center
                                                                     justify-center
                                                                     rounded-full
-                                                                    bg-[#ead7c5]
+                                                                    bg-[#fed7aa]
                                                                     text-xs
                                                                     font-semibold
-                                                                    text-[#8f501e]
+                                                                    text-[#c2410c]
                                                                 "
                                                             >
 
@@ -1201,7 +1237,7 @@ export default function AdminBorrowings() {
                                                                         whitespace-nowrap
                                                                         text-sm
                                                                         font-medium
-                                                                        text-[#2a1d15]
+                                                                        text-[#292524]
                                                                     "
                                                                 >
                                                                     {
@@ -1214,7 +1250,7 @@ export default function AdminBorrowings() {
                                                                     className="
                                                                         whitespace-nowrap
                                                                         text-xs
-                                                                        text-[#9a8778]
+                                                                        text-[#a8a29e]
                                                                     "
                                                                 >
                                                                     {
@@ -1239,7 +1275,7 @@ export default function AdminBorrowings() {
                                                             px-5
                                                             py-4
                                                             text-sm
-                                                            text-[#735e50]
+                                                            text-[#78716c]
                                                         "
                                                     >
 
@@ -1273,7 +1309,7 @@ export default function AdminBorrowings() {
                                                                 ${
                                                                     overdue
                                                                         ? "font-medium text-red-600"
-                                                                        : "text-[#735e50]"
+                                                                        : "text-[#78716c]"
                                                                 }
                                                                 `
                                                             }
@@ -1397,14 +1433,14 @@ export default function AdminBorrowings() {
                                                                         items-center
                                                                         gap-2
                                                                         rounded-lg
-                                                                        bg-[#a8652c]
+                                                                        bg-[#ea580c]
                                                                         px-3
                                                                         py-2
                                                                         text-xs
                                                                         font-medium
                                                                         text-white
                                                                         transition
-                                                                        hover:bg-[#8f501e]
+                                                                        hover:bg-[#c2410c]
                                                                         disabled:cursor-not-allowed
                                                                         disabled:opacity-50
                                                                     "
@@ -1431,7 +1467,7 @@ export default function AdminBorrowings() {
                                                                 <span
                                                                     className="
                                                                         text-xs
-                                                                        text-[#9a8778]
+                                                                        text-[#a8a29e]
                                                                     "
                                                                 >
                                                                     Returned

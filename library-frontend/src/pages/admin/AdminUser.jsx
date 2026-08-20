@@ -9,6 +9,7 @@ import {
     X,
     CheckCircle,
     AlertCircle,
+    Trash2,
 } from "lucide-react";
 
 import { Link } from "react-router-dom";
@@ -33,6 +34,8 @@ export default function AdminUser() {
     const [loading, setLoading] = useState(true);
 
     const [saving, setSaving] = useState(false);
+
+    const [deletingId, setDeletingId] = useState(null);
 
     const [search, setSearch] = useState("");
 
@@ -157,22 +160,40 @@ export default function AdminUser() {
     // OPEN EDIT USER FORM
     // =====================================================
 
-    function handleEditUser(user) {
+    async function handleEditUser(user) {
 
         setEditingUser(user);
-
-        setForm({
-            name: user.name || "",
-            email: user.email || "",
-            password: "",
-            role: user.role || "USER",
-        });
 
         setError("");
 
         setSuccess("");
 
         setShowForm(true);
+
+        try {
+
+            const freshUser =
+                await api.users.getById(
+                    user.id
+                );
+
+            setForm({
+                name: freshUser.name || "",
+                email: freshUser.email || "",
+                password: "",
+                role: freshUser.role || "USER",
+            });
+
+        } catch (err) {
+
+            setForm({
+                name: user.name || "",
+                email: user.email || "",
+                password: "",
+                role: user.role || "USER",
+            });
+
+        }
     }
 
 
@@ -384,6 +405,60 @@ export default function AdminUser() {
 
 
     // =====================================================
+    // DELETE USER
+    // =====================================================
+
+    async function handleDeleteUser(user) {
+
+        const confirmed =
+            window.confirm(
+                `Are you sure you want to delete "${user.name}"?`
+            );
+
+        if (!confirmed) {
+
+            return;
+        }
+
+        try {
+
+            setDeletingId(user.id);
+
+            setError("");
+
+            setSuccess("");
+
+            await api.users.delete(
+                user.id
+            );
+
+            setSuccess(
+                "User deleted successfully."
+            );
+
+            await loadUsers();
+
+            setTimeout(() => {
+
+                setSuccess("");
+
+            }, 4000);
+
+        } catch (err) {
+
+            setError(
+                err.message ||
+                "Unable to delete user."
+            );
+
+        } finally {
+
+            setDeletingId(null);
+        }
+    }
+
+
+    // =====================================================
     // SEARCH USERS
     // =====================================================
 
@@ -482,7 +557,7 @@ export default function AdminUser() {
             className="
                 min-h-screen
                 w-full
-                bg-[#faf4ec]
+                bg-[#fff8f0]
             "
         >
 
@@ -525,10 +600,10 @@ export default function AdminUser() {
                         py-2
                         text-sm
                         font-medium
-                        text-[#735e50]
+                        text-[#78716c]
                         transition
-                        hover:bg-[#f1e3d3]
-                        hover:text-[#2a1d15]
+                        hover:bg-[#ffedd5]
+                        hover:text-[#292524]
                     "
                 >
 
@@ -566,7 +641,7 @@ export default function AdminUser() {
                                 font-medium
                                 uppercase
                                 tracking-wider
-                                text-[#a8652c]
+                                text-[#ea580c]
                             "
                         >
                             Administration
@@ -577,7 +652,7 @@ export default function AdminUser() {
                             className="
                                 text-2xl
                                 font-semibold
-                                text-[#2a1d15]
+                                text-[#292524]
                             "
                         >
                             Users
@@ -588,7 +663,7 @@ export default function AdminUser() {
                             className="
                                 mt-1
                                 text-sm
-                                text-[#735e50]
+                                text-[#78716c]
                             "
                         >
                             Create and manage library users.
@@ -608,14 +683,14 @@ export default function AdminUser() {
                             justify-center
                             gap-2
                             rounded-lg
-                            bg-[#a8652c]
+                            bg-[#ea580c]
                             px-4
                             py-2.5
                             text-sm
                             font-medium
                             text-white
                             transition
-                            hover:bg-[#8f501e]
+                            hover:bg-[#c2410c]
                         "
                     >
 
@@ -736,7 +811,7 @@ export default function AdminUser() {
                         mb-5
                         rounded-xl
                         border
-                        border-[#e5d7c5]
+                        border-[#fed7aa]
                         bg-white
                         p-4
                         shadow-sm
@@ -753,7 +828,7 @@ export default function AdminUser() {
                                 h-4
                                 w-4
                                 -translate-y-1/2
-                                text-[#9a8778]
+                                text-[#a8a29e]
                             "
                         />
 
@@ -771,18 +846,18 @@ export default function AdminUser() {
                                 w-full
                                 rounded-lg
                                 border
-                                border-[#ddd0c1]
-                                bg-[#fffdfb]
+                                border-[#fdba74]
+                                bg-[#fffef9]
                                 py-2.5
                                 pl-9
                                 pr-3
                                 text-sm
-                                text-[#2a1d15]
+                                text-[#292524]
                                 outline-none
                                 transition
-                                focus:border-[#a8652c]
+                                focus:border-[#ea580c]
                                 focus:ring-1
-                                focus:ring-[#a8652c]
+                                focus:ring-[#ea580c]
                             "
                         />
 
@@ -800,7 +875,7 @@ export default function AdminUser() {
                         overflow-hidden
                         rounded-xl
                         border
-                        border-[#e5d7c5]
+                        border-[#fed7aa]
                         bg-white
                         shadow-sm
                     "
@@ -824,7 +899,7 @@ export default function AdminUser() {
                             <p
                                 className="
                                     text-sm
-                                    text-[#735e50]
+                                    text-[#78716c]
                                 "
                             >
                                 Loading users...
@@ -858,8 +933,8 @@ export default function AdminUser() {
                                     items-center
                                     justify-center
                                     rounded-full
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
+                                    bg-[#ffedd5]
+                                    text-[#ea580c]
                                 "
                             >
 
@@ -873,7 +948,7 @@ export default function AdminUser() {
                             <h3
                                 className="
                                     font-medium
-                                    text-[#2a1d15]
+                                    text-[#292524]
                                 "
                             >
                                 No users found
@@ -885,7 +960,7 @@ export default function AdminUser() {
                                     mt-1
                                     text-center
                                     text-sm
-                                    text-[#9a8778]
+                                    text-[#a8a29e]
                                 "
                             >
                                 Try a different search or
@@ -917,8 +992,8 @@ export default function AdminUser() {
                                 <thead
                                     className="
                                         border-b
-                                        border-[#e5d7c5]
-                                        bg-[#fcf8f3]
+                                        border-[#fed7aa]
+                                        bg-[#fffbeb]
                                     "
                                 >
 
@@ -934,7 +1009,7 @@ export default function AdminUser() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             ID
@@ -951,7 +1026,7 @@ export default function AdminUser() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             User
@@ -968,7 +1043,7 @@ export default function AdminUser() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Email
@@ -985,7 +1060,7 @@ export default function AdminUser() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Role
@@ -1002,7 +1077,7 @@ export default function AdminUser() {
                                                 font-semibold
                                                 uppercase
                                                 tracking-wide
-                                                text-[#735e50]
+                                                text-[#78716c]
                                             "
                                         >
                                             Action
@@ -1013,211 +1088,61 @@ export default function AdminUser() {
                                 </thead>
 
 
-                                {/* TABLE BODY */}
-
                                 <tbody>
 
                                     {filteredUsers.map(
                                         (user) => (
 
                                             <tr
-                                                key={
-                                                    user.id
-                                                }
-                                                className="
-                                                    border-b
-                                                    border-[#eee5dc]
-                                                    last:border-0
-                                                    hover:bg-[#fffaf5]
-                                                "
+                                                key={user.id}
+                                                className="border-b border-[#eee5dc] last:border-0 hover:bg-[#fffbf5]"
                                             >
 
-                                                {/* ID */}
-
-                                                <td
-                                                    className="
-                                                        whitespace-nowrap
-                                                        px-5
-                                                        py-4
-                                                        text-sm
-                                                        text-[#9a8778]
-                                                    "
-                                                >
-
+                                                <td className="whitespace-nowrap px-5 py-4 text-sm text-[#a8a29e]">
                                                     #{user.id}
-
                                                 </td>
 
-
-                                                {/* USER */}
-
-                                                <td
-                                                    className="
-                                                        whitespace-nowrap
-                                                        px-5
-                                                        py-4
-                                                    "
-                                                >
-
-                                                    <div
-                                                        className="
-                                                            flex
-                                                            items-center
-                                                            gap-3
-                                                        "
-                                                    >
-
-                                                        <div
-                                                            className="
-                                                                flex
-                                                                h-9
-                                                                w-9
-                                                                shrink-0
-                                                                items-center
-                                                                justify-center
-                                                                rounded-full
-                                                                bg-[#f1e3d3]
-                                                                text-sm
-                                                                font-semibold
-                                                                text-[#a8652c]
-                                                            "
-                                                        >
-
-                                                            {
-                                                                getInitial(
-                                                                    user.name
-                                                                )
-                                                            }
-
+                                                <td className="whitespace-nowrap px-5 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ffedd5] text-sm font-semibold text-[#ea580c]">
+                                                            {getInitial(user.name)}
                                                         </div>
-
-
-                                                        <span
-                                                            className="
-                                                                text-sm
-                                                                font-medium
-                                                                text-[#2a1d15]
-                                                            "
-                                                        >
-                                                            {
-                                                                user.name ||
-                                                                "Unnamed user"
-                                                            }
+                                                        <span className="text-sm font-medium text-[#292524]">
+                                                            {user.name || "Unnamed user"}
                                                         </span>
-
                                                     </div>
-
                                                 </td>
 
-
-                                                {/* EMAIL */}
-
-                                                <td
-                                                    className="
-                                                        whitespace-nowrap
-                                                        px-5
-                                                        py-4
-                                                        text-sm
-                                                        text-[#735e50]
-                                                    "
-                                                >
-
-                                                    {
-                                                        user.email ||
-                                                        "—"
-                                                    }
-
+                                                <td className="whitespace-nowrap px-5 py-4 text-sm text-[#78716c]">
+                                                    {user.email || "—"}
                                                 </td>
 
-
-                                                {/* ROLE */}
-
-                                                <td
-                                                    className="
-                                                        whitespace-nowrap
-                                                        px-5
-                                                        py-4
-                                                    "
-                                                >
-
-                                                    <span
-                                                        className="
-                                                            inline-flex
-                                                            rounded-full
-                                                            bg-[#f1e3d3]
-                                                            px-2.5
-                                                            py-1
-                                                            text-xs
-                                                            font-medium
-                                                            text-[#735e50]
-                                                        "
-                                                    >
-
-                                                        {
-                                                            user.role ||
-                                                            "USER"
-                                                        }
-
+                                                <td className="whitespace-nowrap px-5 py-4">
+                                                    <span className="inline-flex rounded-full bg-[#ffedd5] px-2.5 py-1 text-xs font-medium text-[#78716c]">
+                                                        {user.role || "USER"}
                                                     </span>
-
                                                 </td>
 
-
-                                                {/* EDIT */}
-
-                                                <td
-                                                    className="
-                                                        whitespace-nowrap
-                                                        px-5
-                                                        py-4
-                                                    "
-                                                >
-
-                                                    <div
-                                                        className="
-                                                            flex
-                                                            justify-end
-                                                        "
-                                                    >
-
+                                                <td className="whitespace-nowrap px-5 py-4">
+                                                    <div className="flex justify-end gap-2">
                                                         <button
                                                             type="button"
-                                                            onClick={() =>
-                                                                handleEditUser(
-                                                                    user
-                                                                )
-                                                            }
-                                                            className="
-                                                                inline-flex
-                                                                items-center
-                                                                gap-2
-                                                                rounded-lg
-                                                                border
-                                                                border-[#ddd0c1]
-                                                                bg-white
-                                                                px-3
-                                                                py-2
-                                                                text-xs
-                                                                font-medium
-                                                                text-[#73533b]
-                                                                transition
-                                                                hover:bg-[#f5ede3]
-                                                            "
+                                                            onClick={() => handleEditUser(user)}
+                                                            className="inline-flex items-center gap-2 rounded-lg border border-[#fdba74] bg-white px-3 py-2 text-xs font-medium text-[#57534e] transition hover:bg-[#fff7ed]"
                                                         >
-
-                                                            <Edit
-                                                                className="
-                                                                    h-3.5
-                                                                    w-3.5
-                                                                "
-                                                            />
-
+                                                            <Edit className="h-3.5 w-3.5" />
                                                             Edit
-
                                                         </button>
-
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeleteUser(user)}
+                                                            disabled={deletingId === user.id}
+                                                            className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                            {deletingId === user.id ? "Deleting..." : "Delete"}
+                                                        </button>
                                                     </div>
-
                                                 </td>
 
                                             </tr>
@@ -1265,7 +1190,7 @@ export default function AdminUser() {
                             overflow-y-auto
                             rounded-2xl
                             border
-                            border-[#e5d7c5]
+                            border-[#fed7aa]
                             bg-white
                             shadow-xl
                         "
@@ -1284,7 +1209,7 @@ export default function AdminUser() {
                                 items-center
                                 justify-between
                                 border-b
-                                border-[#e5d7c5]
+                                border-[#fed7aa]
                                 bg-white
                                 px-6
                                 py-5
@@ -1297,7 +1222,7 @@ export default function AdminUser() {
                                     className="
                                         text-lg
                                         font-semibold
-                                        text-[#2a1d15]
+                                        text-[#292524]
                                     "
                                 >
 
@@ -1312,7 +1237,7 @@ export default function AdminUser() {
                                     className="
                                         mt-1
                                         text-xs
-                                        text-[#9a8778]
+                                        text-[#a8a29e]
                                     "
                                 >
 
@@ -1332,9 +1257,9 @@ export default function AdminUser() {
                                 className="
                                     rounded-lg
                                     p-2
-                                    text-[#735e50]
+                                    text-[#78716c]
                                     transition
-                                    hover:bg-[#f1e3d3]
+                                    hover:bg-[#ffedd5]
                                     disabled:cursor-not-allowed
                                     disabled:opacity-50
                                 "
@@ -1414,7 +1339,7 @@ export default function AdminUser() {
                                         block
                                         text-sm
                                         font-medium
-                                        text-[#463529]
+                                        text-[#44403c]
                                     "
                                 >
                                     Name
@@ -1433,17 +1358,17 @@ export default function AdminUser() {
                                         w-full
                                         rounded-lg
                                         border
-                                        border-[#ddd0c1]
-                                        bg-[#fffdfb]
+                                        border-[#fdba74]
+                                        bg-[#fffef9]
                                         px-3
                                         py-2.5
                                         text-sm
-                                        text-[#2a1d15]
+                                        text-[#292524]
                                         outline-none
                                         transition
-                                        focus:border-[#a8652c]
+                                        focus:border-[#ea580c]
                                         focus:ring-1
-                                        focus:ring-[#a8652c]
+                                        focus:ring-[#ea580c]
                                     "
                                 />
 
@@ -1461,7 +1386,7 @@ export default function AdminUser() {
                                         block
                                         text-sm
                                         font-medium
-                                        text-[#463529]
+                                        text-[#44403c]
                                     "
                                 >
                                     Email
@@ -1480,17 +1405,17 @@ export default function AdminUser() {
                                         w-full
                                         rounded-lg
                                         border
-                                        border-[#ddd0c1]
-                                        bg-[#fffdfb]
+                                        border-[#fdba74]
+                                        bg-[#fffef9]
                                         px-3
                                         py-2.5
                                         text-sm
-                                        text-[#2a1d15]
+                                        text-[#292524]
                                         outline-none
                                         transition
-                                        focus:border-[#a8652c]
+                                        focus:border-[#ea580c]
                                         focus:ring-1
-                                        focus:ring-[#a8652c]
+                                        focus:ring-[#ea580c]
                                     "
                                 />
 
@@ -1508,7 +1433,7 @@ export default function AdminUser() {
                                         block
                                         text-sm
                                         font-medium
-                                        text-[#463529]
+                                        text-[#44403c]
                                     "
                                 >
                                     Password
@@ -1531,17 +1456,17 @@ export default function AdminUser() {
                                         w-full
                                         rounded-lg
                                         border
-                                        border-[#ddd0c1]
-                                        bg-[#fffdfb]
+                                        border-[#fdba74]
+                                        bg-[#fffef9]
                                         px-3
                                         py-2.5
                                         text-sm
-                                        text-[#2a1d15]
+                                        text-[#292524]
                                         outline-none
                                         transition
-                                        focus:border-[#a8652c]
+                                        focus:border-[#ea580c]
                                         focus:ring-1
-                                        focus:ring-[#a8652c]
+                                        focus:ring-[#ea580c]
                                     "
                                 />
 
@@ -1552,7 +1477,7 @@ export default function AdminUser() {
                                         className="
                                             mt-1.5
                                             text-xs
-                                            text-[#9a8778]
+                                            text-[#a8a29e]
                                         "
                                     >
                                         Leave this field empty if you
@@ -1575,7 +1500,7 @@ export default function AdminUser() {
                                         block
                                         text-sm
                                         font-medium
-                                        text-[#463529]
+                                        text-[#44403c]
                                     "
                                 >
                                     Role
@@ -1592,17 +1517,17 @@ export default function AdminUser() {
                                         w-full
                                         rounded-lg
                                         border
-                                        border-[#ddd0c1]
-                                        bg-[#fffdfb]
+                                        border-[#fdba74]
+                                        bg-[#fffef9]
                                         px-3
                                         py-2.5
                                         text-sm
-                                        text-[#2a1d15]
+                                        text-[#292524]
                                         outline-none
                                         transition
-                                        focus:border-[#a8652c]
+                                        focus:border-[#ea580c]
                                         focus:ring-1
-                                        focus:ring-[#a8652c]
+                                        focus:ring-[#ea580c]
                                     "
                                 >
 
@@ -1639,15 +1564,15 @@ export default function AdminUser() {
                                     className="
                                         rounded-lg
                                         border
-                                        border-[#ddd0c1]
+                                        border-[#fdba74]
                                         bg-white
                                         px-4
                                         py-2.5
                                         text-sm
                                         font-medium
-                                        text-[#735e50]
+                                        text-[#78716c]
                                         transition
-                                        hover:bg-[#f5ede3]
+                                        hover:bg-[#fff7ed]
                                         disabled:cursor-not-allowed
                                         disabled:opacity-50
                                     "
@@ -1661,14 +1586,14 @@ export default function AdminUser() {
                                     disabled={saving}
                                     className="
                                         rounded-lg
-                                        bg-[#a8652c]
+                                        bg-[#ea580c]
                                         px-4
                                         py-2.5
                                         text-sm
                                         font-medium
                                         text-white
                                         transition
-                                        hover:bg-[#8f501e]
+                                        hover:bg-[#c2410c]
                                         disabled:cursor-not-allowed
                                         disabled:opacity-50
                                     "

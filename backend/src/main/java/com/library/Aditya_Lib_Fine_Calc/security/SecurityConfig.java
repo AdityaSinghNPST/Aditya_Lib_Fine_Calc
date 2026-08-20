@@ -3,11 +3,13 @@ package com.library.Aditya_Lib_Fine_Calc.security;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -15,8 +17,14 @@ public class SecurityConfig {
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter
     ) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.jwtAuthenticationFilter =
+                jwtAuthenticationFilter;
     }
+
+
+    // =====================================================
+    // SECURITY FILTER CHAIN
+    // =====================================================
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -24,57 +32,93 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
-                // Disable CSRF because this is a REST API.
+
+                // Enable CORS.
+                //
+                // Spring will use the CorsConfigurationSource
+                // from our separate CorsConfig class.
+                .cors(cors -> {})
+
+                // Disable CSRF for JWT REST API.
                 .csrf(csrf -> csrf.disable())
 
-                // Use JWT instead of HTTP sessions.
+                // JWT authentication is stateless.
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
 
+                // Authorization rules.
                 .authorizeHttpRequests(auth -> auth
 
-                        // Anyone can access login.
+                        // -----------------------------------------
+                        // Public login endpoint
+                        // -----------------------------------------
+
                         .requestMatchers(
                                 "/api/auth/login"
                         ).permitAll()
 
-                        // Only Admin can manage users.
+
+                        // -----------------------------------------
+                        // Allow CORS preflight requests
+                        // -----------------------------------------
+
+                        .requestMatchers(
+                                org.springframework.http.HttpMethod.OPTIONS,
+                                "/**"
+                        ).permitAll()
+
+
+                        // -----------------------------------------
+                        // Admin-only endpoints
+                        // -----------------------------------------
+
                         .requestMatchers(
                                 "/api/users/**"
                         ).hasRole("ADMIN")
 
-                        // Only Admin can manage settings.
+
                         .requestMatchers(
                                 "/api/settings/**"
                         ).hasRole("ADMIN")
 
-                        // Logged-in users can access books.
+
+                        // -----------------------------------------
+                        // Authenticated endpoints
+                        // -----------------------------------------
+
                         .requestMatchers(
                                 "/api/books/**"
                         ).authenticated()
 
-                        // Logged-in users can access borrowing APIs.
+
                         .requestMatchers(
                                 "/api/borrowings/**"
                         ).authenticated()
 
-                        // Logged-in users can access fines for now.
+
                         .requestMatchers(
                                 "/api/fines/**"
                         ).authenticated()
 
-                        // Everything else requires authentication.
+
+                        // -----------------------------------------
+                        // Everything else
+                        // -----------------------------------------
+
                         .anyRequest().authenticated()
                 )
 
-                // Process JWT before Spring's authentication filter.
+
+                // Add JWT filter before the standard
+                // UsernamePasswordAuthenticationFilter.
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
                 );
+
 
         return http.build();
     }

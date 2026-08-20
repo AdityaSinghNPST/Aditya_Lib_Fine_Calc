@@ -1,20 +1,28 @@
 import { useEffect, useState } from "react";
 
 import {
-    Users,
+    ArrowLeft,
+    Edit,
     Plus,
-    Pencil,
-    Trash2,
-    X,
     Search,
+    Users,
+    X,
+    CheckCircle,
+    AlertCircle,
 } from "lucide-react";
+
+import { Link } from "react-router-dom";
 
 import Navbar from "../../components/layout/Navbar";
 
 import api from "../../services/api";
 
 
-export default function AdminUsers() {
+// =========================================================
+// ADMIN USER MANAGEMENT
+// =========================================================
+
+export default function AdminUser() {
 
     // =====================================================
     // STATE
@@ -22,20 +30,31 @@ export default function AdminUsers() {
 
     const [users, setUsers] = useState([]);
 
-    const [loading, setLoading] =
-        useState(true);
+    const [loading, setLoading] = useState(true);
 
-    const [error, setError] =
-        useState("");
+    const [saving, setSaving] = useState(false);
 
-    const [search, setSearch] =
-        useState("");
+    const [search, setSearch] = useState("");
 
-    const [showForm, setShowForm] =
-        useState(false);
+    const [error, setError] = useState("");
 
-    const [editingUser, setEditingUser] =
-        useState(null);
+    const [success, setSuccess] = useState("");
+
+    const [showForm, setShowForm] = useState(false);
+
+    const [editingUser, setEditingUser] = useState(null);
+
+
+    // =====================================================
+    // FORM STATE
+    // =====================================================
+
+    const [form, setForm] = useState({
+        name: "",
+        email: "",
+        password: "",
+        role: "USER",
+    });
 
 
     // =====================================================
@@ -53,17 +72,44 @@ export default function AdminUsers() {
             const data =
                 await api.users.getAll();
 
-            setUsers(
-                Array.isArray(data)
-                    ? data
-                    : []
-            );
+
+            // Backend returns an array.
+
+            if (Array.isArray(data)) {
+
+                setUsers(data);
+
+                return;
+            }
+
+
+            // Backend returns a Spring Page.
+
+            if (
+                data &&
+                Array.isArray(data.content)
+            ) {
+
+                setUsers(data.content);
+
+                return;
+            }
+
+
+            // Fallback.
+
+            setUsers([]);
 
         } catch (err) {
 
+            console.error(
+                "Failed to load users:",
+                err
+            );
+
             setError(
                 err.message ||
-                "Unable to load members."
+                "Unable to load users."
             );
 
         } finally {
@@ -73,6 +119,10 @@ export default function AdminUsers() {
     }
 
 
+    // =====================================================
+    // LOAD USERS WHEN PAGE OPENS
+    // =====================================================
+
     useEffect(() => {
 
         loadUsers();
@@ -81,133 +131,415 @@ export default function AdminUsers() {
 
 
     // =====================================================
-    // SEARCH
+    // OPEN ADD USER FORM
     // =====================================================
 
-    const filteredUsers =
-        users.filter((user) => {
-
-            const value =
-                search
-                    .toLowerCase()
-                    .trim();
-
-            if (!value) {
-                return true;
-            }
-
-            return (
-                String(user.name || "")
-                    .toLowerCase()
-                    .includes(value)
-                ||
-                String(user.email || "")
-                    .toLowerCase()
-                    .includes(value)
-                ||
-                String(user.id || "")
-                    .toLowerCase()
-                    .includes(value)
-            );
-        });
-
-
-    // =====================================================
-    // ADD
-    // =====================================================
-
-    function handleAdd() {
+    function handleAddUser() {
 
         setEditingUser(null);
 
+        setForm({
+            name: "",
+            email: "",
+            password: "",
+            role: "USER",
+        });
+
+        setError("");
+
+        setSuccess("");
+
         setShowForm(true);
     }
 
 
     // =====================================================
-    // EDIT
+    // OPEN EDIT USER FORM
     // =====================================================
 
-    function handleEdit(user) {
+    function handleEditUser(user) {
 
         setEditingUser(user);
 
+        setForm({
+            name: user.name || "",
+            email: user.email || "",
+            password: "",
+            role: user.role || "USER",
+        });
+
+        setError("");
+
+        setSuccess("");
+
         setShowForm(true);
     }
 
 
     // =====================================================
-    // DELETE
+    // CLOSE FORM
     // =====================================================
 
-    async function handleDelete(user) {
+    function handleCloseForm() {
 
-        const confirmed =
-            window.confirm(
-                `Delete member "${user.name}"?`
+        if (saving) {
+
+            return;
+        }
+
+        setShowForm(false);
+
+        setEditingUser(null);
+
+        setError("");
+    }
+
+
+    // =====================================================
+    // HANDLE FORM INPUT
+    // =====================================================
+
+    function handleChange(event) {
+
+        const {
+            name,
+            value,
+        } = event.target;
+
+
+        setForm((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
+    }
+
+
+    // =====================================================
+    // SAVE USER
+    // =====================================================
+
+    async function handleSubmit(event) {
+
+        event.preventDefault();
+
+        setError("");
+
+        setSuccess("");
+
+
+        // -------------------------------------------------
+        // Validate name
+        // -------------------------------------------------
+
+        if (!form.name.trim()) {
+
+            setError(
+                "Name is required."
             );
 
-        if (!confirmed) {
+            return;
+        }
+
+
+        // -------------------------------------------------
+        // Validate email
+        // -------------------------------------------------
+
+        if (!form.email.trim()) {
+
+            setError(
+                "Email is required."
+            );
+
+            return;
+        }
+
+
+        // -------------------------------------------------
+        // Validate password for new user
+        // -------------------------------------------------
+
+        if (
+            !editingUser &&
+            !form.password.trim()
+        ) {
+
+            setError(
+                "Password is required."
+            );
+
             return;
         }
 
 
         try {
 
-            setError("");
+            setSaving(true);
 
-            await api.users.delete(
-                user.id
-            );
+
+            // =================================================
+            // EDIT EXISTING USER
+            // =================================================
+
+            if (editingUser) {
+
+                const payload = {
+                    name: form.name.trim(),
+                    email: form.email.trim(),
+                    role: form.role,
+                };
+
+
+                /*
+                 * Only send the password when the admin
+                 * actually entered a new password.
+                 */
+
+                if (form.password.trim()) {
+
+                    payload.password =
+                        form.password.trim();
+                }
+
+
+                await api.users.update(
+                    editingUser.id,
+                    payload
+                );
+
+
+                setSuccess(
+                    "User updated successfully."
+                );
+
+            }
+
+
+            // =================================================
+            // CREATE NEW USER
+            // =================================================
+
+            else {
+
+                await api.users.create({
+
+                    name:
+                        form.name.trim(),
+
+                    email:
+                        form.email.trim(),
+
+                    password:
+                        form.password,
+
+                    role:
+                        form.role,
+
+                });
+
+
+                setSuccess(
+                    "User created successfully."
+                );
+            }
+
+
+            // Close modal.
+
+            setShowForm(false);
+
+            setEditingUser(null);
+
+
+            // Reload users.
 
             await loadUsers();
 
+
+            // Clear success message.
+
+            setTimeout(() => {
+
+                setSuccess("");
+
+            }, 4000);
+
         } catch (err) {
+
+            console.error(
+                "Failed to save user:",
+                err
+            );
 
             setError(
                 err.message ||
-                "Unable to delete member."
+                "Unable to save user."
             );
+
+        } finally {
+
+            setSaving(false);
         }
     }
 
 
     // =====================================================
-    // FORM SUCCESS
+    // SEARCH USERS
     // =====================================================
 
-    async function handleSuccess() {
+    const filteredUsers =
+        users.filter((user) => {
 
-        setShowForm(false);
+            const searchValue =
+                search
+                    .toLowerCase()
+                    .trim();
 
-        setEditingUser(null);
 
-        await loadUsers();
+            if (!searchValue) {
+
+                return true;
+            }
+
+
+            const name =
+                String(
+                    user.name || ""
+                ).toLowerCase();
+
+
+            const email =
+                String(
+                    user.email || ""
+                ).toLowerCase();
+
+
+            const role =
+                String(
+                    user.role || ""
+                ).toLowerCase();
+
+
+            const id =
+                String(
+                    user.id || ""
+                ).toLowerCase();
+
+
+            return (
+
+                name.includes(
+                    searchValue
+                )
+
+                ||
+
+                email.includes(
+                    searchValue
+                )
+
+                ||
+
+                role.includes(
+                    searchValue
+                )
+
+                ||
+
+                id.includes(
+                    searchValue
+                )
+
+            );
+        });
+
+
+    // =====================================================
+    // GET INITIAL
+    // =====================================================
+
+    function getInitial(name) {
+
+        if (!name) {
+
+            return "?";
+        }
+
+
+        return name
+            .charAt(0)
+            .toUpperCase();
     }
 
+
+    // =====================================================
+    // RENDER
+    // =====================================================
 
     return (
 
         <div
             className="
                 min-h-screen
+                w-full
                 bg-[#faf4ec]
             "
         >
 
+            {/* =================================================
+                NAVBAR
+            ================================================= */}
+
             <Navbar />
 
 
+            {/* =================================================
+                MAIN CONTENT
+            ================================================= */}
+
             <main
                 className="
-                    mx-auto
-                    max-w-7xl
+                    min-h-[calc(100vh-64px)]
+                    w-full
                     px-4
-                    py-8
+                    py-6
                     sm:px-6
                     lg:px-8
+                    xl:px-10
                 "
             >
+
+                {/* =================================================
+                    BACK TO DASHBOARD
+                ================================================= */}
+
+                <Link
+                    to="/admin"
+                    className="
+                        mb-5
+                        inline-flex
+                        items-center
+                        gap-2
+                        rounded-lg
+                        px-3
+                        py-2
+                        text-sm
+                        font-medium
+                        text-[#735e50]
+                        transition
+                        hover:bg-[#f1e3d3]
+                        hover:text-[#2a1d15]
+                    "
+                >
+
+                    <ArrowLeft
+                        className="h-4 w-4"
+                    />
+
+                    Back to Dashboard
+
+                </Link>
+
 
                 {/* =================================================
                     HEADER
@@ -248,7 +580,7 @@ export default function AdminUsers() {
                                 text-[#2a1d15]
                             "
                         >
-                            Members
+                            Users
                         </h1>
 
 
@@ -259,15 +591,17 @@ export default function AdminUsers() {
                                 text-[#735e50]
                             "
                         >
-                            Manage library members and users.
+                            Create and manage library users.
                         </p>
 
                     </div>
 
 
+                    {/* ADD USER BUTTON */}
+
                     <button
                         type="button"
-                        onClick={handleAdd}
+                        onClick={handleAddUser}
                         className="
                             inline-flex
                             items-center
@@ -280,13 +614,16 @@ export default function AdminUsers() {
                             text-sm
                             font-medium
                             text-white
+                            transition
                             hover:bg-[#8f501e]
                         "
                     >
 
-                        <Plus className="h-4 w-4" />
+                        <Plus
+                            className="h-4 w-4"
+                        />
 
-                        Add Member
+                        Add User
 
                     </button>
 
@@ -294,10 +631,46 @@ export default function AdminUsers() {
 
 
                 {/* =================================================
-                    ERROR
+                    SUCCESS MESSAGE
                 ================================================= */}
 
-                {error && (
+                {success && (
+
+                    <div
+                        className="
+                            mb-5
+                            flex
+                            items-center
+                            gap-2
+                            rounded-lg
+                            border
+                            border-green-200
+                            bg-green-50
+                            px-4
+                            py-3
+                            text-sm
+                            text-green-700
+                        "
+                    >
+
+                        <CheckCircle
+                            className="h-4 w-4"
+                        />
+
+                        <span>
+                            {success}
+                        </span>
+
+                    </div>
+
+                )}
+
+
+                {/* =================================================
+                    ERROR MESSAGE
+                ================================================= */}
+
+                {error && !showForm && (
 
                     <div
                         className="
@@ -316,9 +689,23 @@ export default function AdminUsers() {
                         "
                     >
 
-                        <span>
-                            {error}
-                        </span>
+                        <div
+                            className="
+                                flex
+                                items-center
+                                gap-2
+                            "
+                        >
+
+                            <AlertCircle
+                                className="h-4 w-4"
+                            />
+
+                            <span>
+                                {error}
+                            </span>
+
+                        </div>
 
 
                         <button
@@ -326,9 +713,12 @@ export default function AdminUsers() {
                             onClick={() =>
                                 setError("")
                             }
+                            className="rounded p-1 hover:bg-red-100"
                         >
 
-                            <X className="h-4 w-4" />
+                            <X
+                                className="h-4 w-4"
+                            />
 
                         </button>
 
@@ -369,13 +759,14 @@ export default function AdminUsers() {
 
 
                         <input
+                            type="text"
                             value={search}
-                            onChange={(e) =>
+                            onChange={(event) =>
                                 setSearch(
-                                    e.target.value
+                                    event.target.value
                                 )
                             }
-                            placeholder="Search by name, email or member ID..."
+                            placeholder="Search by name, email, role or ID..."
                             className="
                                 w-full
                                 rounded-lg
@@ -386,8 +777,12 @@ export default function AdminUsers() {
                                 pl-9
                                 pr-3
                                 text-sm
+                                text-[#2a1d15]
                                 outline-none
+                                transition
                                 focus:border-[#a8652c]
+                                focus:ring-1
+                                focus:ring-[#a8652c]
                             "
                         />
 
@@ -397,7 +792,7 @@ export default function AdminUsers() {
 
 
                 {/* =================================================
-                    TABLE
+                    USER TABLE
                 ================================================= */}
 
                 <div
@@ -413,20 +808,35 @@ export default function AdminUsers() {
 
                     {loading ? (
 
+                        /* =========================================
+                           LOADING
+                        ========================================= */
+
                         <div
                             className="
                                 flex
                                 min-h-64
                                 items-center
                                 justify-center
-                                text-sm
-                                text-[#735e50]
                             "
                         >
-                            Loading members...
+
+                            <p
+                                className="
+                                    text-sm
+                                    text-[#735e50]
+                                "
+                            >
+                                Loading users...
+                            </p>
+
                         </div>
 
                     ) : filteredUsers.length === 0 ? (
+
+                        /* =========================================
+                           EMPTY
+                        ========================================= */
 
                         <div
                             className="
@@ -435,6 +845,7 @@ export default function AdminUsers() {
                                 flex-col
                                 items-center
                                 justify-center
+                                px-4
                             "
                         >
 
@@ -452,7 +863,9 @@ export default function AdminUsers() {
                                 "
                             >
 
-                                <Users className="h-5 w-5" />
+                                <Users
+                                    className="h-5 w-5"
+                                />
 
                             </div>
 
@@ -463,16 +876,43 @@ export default function AdminUsers() {
                                     text-[#2a1d15]
                                 "
                             >
-                                No members found
+                                No users found
                             </h3>
+
+
+                            <p
+                                className="
+                                    mt-1
+                                    text-center
+                                    text-sm
+                                    text-[#9a8778]
+                                "
+                            >
+                                Try a different search or
+                                create a new user.
+                            </p>
 
                         </div>
 
                     ) : (
 
-                        <div className="overflow-x-auto">
+                        /* =========================================
+                           TABLE
+                        ========================================= */
 
-                            <table className="min-w-full">
+                        <div
+                            className="
+                                overflow-x-auto
+                            "
+                        >
+
+                            <table
+                                className="
+                                    min-w-full
+                                "
+                            >
+
+                                {/* TABLE HEADER */}
 
                                 <thead
                                     className="
@@ -486,6 +926,7 @@ export default function AdminUsers() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -496,12 +937,30 @@ export default function AdminUsers() {
                                                 text-[#735e50]
                                             "
                                         >
-                                            Member
+                                            ID
                                         </th>
 
 
                                         <th
                                             className="
+                                                whitespace-nowrap
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            User
+                                        </th>
+
+
+                                        <th
+                                            className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -518,6 +977,7 @@ export default function AdminUsers() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -534,6 +994,7 @@ export default function AdminUsers() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-right
@@ -544,7 +1005,7 @@ export default function AdminUsers() {
                                                 text-[#735e50]
                                             "
                                         >
-                                            Actions
+                                            Action
                                         </th>
 
                                     </tr>
@@ -552,13 +1013,17 @@ export default function AdminUsers() {
                                 </thead>
 
 
+                                {/* TABLE BODY */}
+
                                 <tbody>
 
                                     {filteredUsers.map(
                                         (user) => (
 
                                             <tr
-                                                key={user.id}
+                                                key={
+                                                    user.id
+                                                }
                                                 className="
                                                     border-b
                                                     border-[#eee5dc]
@@ -567,9 +1032,32 @@ export default function AdminUsers() {
                                                 "
                                             >
 
-                                                {/* MEMBER */}
+                                                {/* ID */}
 
-                                                <td className="px-5 py-4">
+                                                <td
+                                                    className="
+                                                        whitespace-nowrap
+                                                        px-5
+                                                        py-4
+                                                        text-sm
+                                                        text-[#9a8778]
+                                                    "
+                                                >
+
+                                                    #{user.id}
+
+                                                </td>
+
+
+                                                {/* USER */}
+
+                                                <td
+                                                    className="
+                                                        whitespace-nowrap
+                                                        px-5
+                                                        py-4
+                                                    "
+                                                >
 
                                                     <div
                                                         className="
@@ -584,6 +1072,7 @@ export default function AdminUsers() {
                                                                 flex
                                                                 h-9
                                                                 w-9
+                                                                shrink-0
                                                                 items-center
                                                                 justify-center
                                                                 rounded-full
@@ -594,39 +1083,27 @@ export default function AdminUsers() {
                                                             "
                                                         >
 
-                                                            {(
+                                                            {
+                                                                getInitial(
+                                                                    user.name
+                                                                )
+                                                            }
+
+                                                        </div>
+
+
+                                                        <span
+                                                            className="
+                                                                text-sm
+                                                                font-medium
+                                                                text-[#2a1d15]
+                                                            "
+                                                        >
+                                                            {
                                                                 user.name ||
-                                                                "U"
-                                                            )
-                                                                .charAt(0)
-                                                                .toUpperCase()}
-
-                                                        </div>
-
-
-                                                        <div>
-
-                                                            <p
-                                                                className="
-                                                                    text-sm
-                                                                    font-medium
-                                                                    text-[#2a1d15]
-                                                                "
-                                                            >
-                                                                {user.name}
-                                                            </p>
-
-
-                                                            <p
-                                                                className="
-                                                                    text-xs
-                                                                    text-[#9a8778]
-                                                                "
-                                                            >
-                                                                ID: {user.id}
-                                                            </p>
-
-                                                        </div>
+                                                                "Unnamed user"
+                                                            }
+                                                        </span>
 
                                                     </div>
 
@@ -637,98 +1114,105 @@ export default function AdminUsers() {
 
                                                 <td
                                                     className="
+                                                        whitespace-nowrap
                                                         px-5
                                                         py-4
                                                         text-sm
                                                         text-[#735e50]
                                                     "
                                                 >
-                                                    {user.email}
+
+                                                    {
+                                                        user.email ||
+                                                        "—"
+                                                    }
+
                                                 </td>
 
 
                                                 {/* ROLE */}
 
-                                                <td className="px-5 py-4">
+                                                <td
+                                                    className="
+                                                        whitespace-nowrap
+                                                        px-5
+                                                        py-4
+                                                    "
+                                                >
 
                                                     <span
-                                                        className={`
+                                                        className="
                                                             inline-flex
                                                             rounded-full
+                                                            bg-[#f1e3d3]
                                                             px-2.5
                                                             py-1
                                                             text-xs
                                                             font-medium
-                                                            ${
-                                                                user.role ===
-                                                                "ADMIN"
-                                                                    ? "bg-purple-50 text-purple-700"
-                                                                    : "bg-green-50 text-green-700"
-                                                            }
-                                                        `}
+                                                            text-[#735e50]
+                                                        "
                                                     >
-                                                        {user.role}
+
+                                                        {
+                                                            user.role ||
+                                                            "USER"
+                                                        }
+
                                                     </span>
 
                                                 </td>
 
 
-                                                {/* ACTIONS */}
+                                                {/* EDIT */}
 
-                                                <td className="px-5 py-4">
+                                                <td
+                                                    className="
+                                                        whitespace-nowrap
+                                                        px-5
+                                                        py-4
+                                                    "
+                                                >
 
                                                     <div
                                                         className="
                                                             flex
                                                             justify-end
-                                                            gap-2
                                                         "
                                                     >
 
                                                         <button
                                                             type="button"
                                                             onClick={() =>
-                                                                handleEdit(
+                                                                handleEditUser(
                                                                     user
                                                                 )
                                                             }
                                                             className="
-                                                                flex
-                                                                h-8
-                                                                w-8
+                                                                inline-flex
                                                                 items-center
-                                                                justify-center
+                                                                gap-2
                                                                 rounded-lg
+                                                                border
+                                                                border-[#ddd0c1]
+                                                                bg-white
+                                                                px-3
+                                                                py-2
+                                                                text-xs
+                                                                font-medium
                                                                 text-[#73533b]
-                                                                hover:bg-[#f1e3d3]
+                                                                transition
+                                                                hover:bg-[#f5ede3]
                                                             "
                                                         >
 
-                                                            <Pencil className="h-4 w-4" />
+                                                            <Edit
+                                                                className="
+                                                                    h-3.5
+                                                                    w-3.5
+                                                                "
+                                                            />
 
-                                                        </button>
-
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                handleDelete(
-                                                                    user
-                                                                )
-                                                            }
-                                                            className="
-                                                                flex
-                                                                h-8
-                                                                w-8
-                                                                items-center
-                                                                justify-center
-                                                                rounded-lg
-                                                                text-red-500
-                                                                hover:bg-red-50
-                                                            "
-                                                        >
-
-                                                            <Trash2 className="h-4 w-4" />
+                                                            Edit
 
                                                         </button>
 
@@ -754,546 +1238,459 @@ export default function AdminUsers() {
             </main>
 
 
-            {/* =================================================
-                ADD / EDIT MODAL
-            ================================================= */}
+            {/* =====================================================
+                ADD / EDIT USER MODAL
+            ===================================================== */}
 
             {showForm && (
 
-                <UserForm
-                    user={editingUser}
-                    onSuccess={handleSuccess}
-                    onCancel={() => {
-
-                        setShowForm(false);
-
-                        setEditingUser(null);
-
-                    }}
-                />
-
-            )}
-
-        </div>
-    );
-}
-
-
-// =========================================================
-// USER FORM
-// =========================================================
-
-function UserForm({
-    user,
-    onSuccess,
-    onCancel,
-}) {
-
-    const editing =
-        Boolean(user);
-
-
-    const [name, setName] =
-        useState(
-            user?.name || ""
-        );
-
-
-    const [email, setEmail] =
-        useState(
-            user?.email || ""
-        );
-
-
-    const [password, setPassword] =
-        useState("");
-
-
-    const [role, setRole] =
-        useState(
-            user?.role || "USER"
-        );
-
-
-    const [loading, setLoading] =
-        useState(false);
-
-
-    const [error, setError] =
-        useState("");
-
-
-    // =====================================================
-    // SUBMIT
-    // =====================================================
-
-    async function handleSubmit(e) {
-
-        e.preventDefault();
-
-        setError("");
-
-
-        if (!name.trim()) {
-
-            setError(
-                "Name is required."
-            );
-
-            return;
-        }
-
-
-        if (!email.trim()) {
-
-            setError(
-                "Email is required."
-            );
-
-            return;
-        }
-
-
-        /*
-         * Password is required only while
-         * creating a new member.
-         */
-
-        if (!editing && !password.trim()) {
-
-            setError(
-                "Password is required."
-            );
-
-            return;
-        }
-
-
-        try {
-
-            setLoading(true);
-
-
-            const data = {
-
-                name:
-                    name.trim(),
-
-                email:
-                    email.trim(),
-
-                role,
-
-            };
-
-
-            /*
-             * Only send password when it is provided.
-             */
-
-            if (password.trim()) {
-
-                data.password =
-                    password;
-            }
-
-
-            if (editing) {
-
-                await api.users.update(
-                    user.id,
-                    data
-                );
-
-            } else {
-
-                await api.users.create(
-                    data
-                );
-            }
-
-
-            onSuccess();
-
-        } catch (err) {
-
-            setError(
-                err.message ||
-                "Unable to save member."
-            );
-
-        } finally {
-
-            setLoading(false);
-        }
-    }
-
-
-    return (
-
-        <div
-            className="
-                fixed
-                inset-0
-                z-50
-                flex
-                items-center
-                justify-center
-                bg-black/40
-                px-4
-            "
-        >
-
-            <div
-                className="
-                    w-full
-                    max-w-md
-                    rounded-xl
-                    border
-                    border-[#e5d7c5]
-                    bg-[#faf4ec]
-                    p-6
-                    shadow-2xl
-                "
-            >
-
-                {/* HEADER */}
-
                 <div
                     className="
-                        mb-5
+                        fixed
+                        inset-0
+                        z-50
                         flex
                         items-center
-                        justify-between
+                        justify-center
+                        bg-black/30
+                        p-4
                     "
                 >
 
-                    <div>
-
-                        <h2
-                            className="
-                                text-lg
-                                font-semibold
-                                text-[#2a1d15]
-                            "
-                        >
-                            {editing
-                                ? "Edit Member"
-                                : "Add Member"}
-                        </h2>
-
-
-                        <p
-                            className="
-                                mt-1
-                                text-xs
-                                text-[#735e50]
-                            "
-                        >
-                            Enter member information.
-                        </p>
-
-                    </div>
-
-
-                    <button
-                        type="button"
-                        onClick={onCancel}
+                    <div
                         className="
-                            flex
-                            h-8
-                            w-8
-                            items-center
-                            justify-center
-                            rounded-lg
-                            text-[#735e50]
-                            hover:bg-[#eee2d5]
+                            max-h-[90vh]
+                            w-full
+                            max-w-lg
+                            overflow-y-auto
+                            rounded-2xl
+                            border
+                            border-[#e5d7c5]
+                            bg-white
+                            shadow-xl
                         "
                     >
 
-                        <X className="h-4 w-4" />
+                        {/* =================================================
+                            MODAL HEADER
+                        ================================================= */}
 
-                    </button>
+                        <div
+                            className="
+                                sticky
+                                top-0
+                                z-10
+                                flex
+                                items-center
+                                justify-between
+                                border-b
+                                border-[#e5d7c5]
+                                bg-white
+                                px-6
+                                py-5
+                            "
+                        >
+
+                            <div>
+
+                                <h2
+                                    className="
+                                        text-lg
+                                        font-semibold
+                                        text-[#2a1d15]
+                                    "
+                                >
+
+                                    {editingUser
+                                        ? "Edit User"
+                                        : "Add User"}
+
+                                </h2>
+
+
+                                <p
+                                    className="
+                                        mt-1
+                                        text-xs
+                                        text-[#9a8778]
+                                    "
+                                >
+
+                                    {editingUser
+                                        ? "Update the user's information."
+                                        : "Create a new library user."}
+
+                                </p>
+
+                            </div>
+
+
+                            <button
+                                type="button"
+                                onClick={handleCloseForm}
+                                disabled={saving}
+                                className="
+                                    rounded-lg
+                                    p-2
+                                    text-[#735e50]
+                                    transition
+                                    hover:bg-[#f1e3d3]
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-50
+                                "
+                            >
+
+                                <X
+                                    className="h-5 w-5"
+                                />
+
+                            </button>
+
+                        </div>
+
+
+                        {/* =================================================
+                            FORM ERROR
+                        ================================================= */}
+
+                        {error && (
+
+                            <div
+                                className="
+                                    mx-6
+                                    mt-5
+                                    flex
+                                    items-start
+                                    gap-2
+                                    rounded-lg
+                                    border
+                                    border-red-200
+                                    bg-red-50
+                                    px-4
+                                    py-3
+                                    text-sm
+                                    text-red-700
+                                "
+                            >
+
+                                <AlertCircle
+                                    className="
+                                        mt-0.5
+                                        h-4
+                                        w-4
+                                        shrink-0
+                                    "
+                                />
+
+                                <span>
+                                    {error}
+                                </span>
+
+                            </div>
+
+                        )}
+
+
+                        {/* =================================================
+                            FORM
+                        ================================================= */}
+
+                        <form
+                            onSubmit={handleSubmit}
+                            className="
+                                space-y-5
+                                p-6
+                            "
+                        >
+
+                            {/* NAME */}
+
+                            <div>
+
+                                <label
+                                    htmlFor="name"
+                                    className="
+                                        mb-1.5
+                                        block
+                                        text-sm
+                                        font-medium
+                                        text-[#463529]
+                                    "
+                                >
+                                    Name
+                                </label>
+
+
+                                <input
+                                    id="name"
+                                    type="text"
+                                    name="name"
+                                    value={form.name}
+                                    onChange={handleChange}
+                                    disabled={saving}
+                                    placeholder="Enter user name"
+                                    className="
+                                        w-full
+                                        rounded-lg
+                                        border
+                                        border-[#ddd0c1]
+                                        bg-[#fffdfb]
+                                        px-3
+                                        py-2.5
+                                        text-sm
+                                        text-[#2a1d15]
+                                        outline-none
+                                        transition
+                                        focus:border-[#a8652c]
+                                        focus:ring-1
+                                        focus:ring-[#a8652c]
+                                    "
+                                />
+
+                            </div>
+
+
+                            {/* EMAIL */}
+
+                            <div>
+
+                                <label
+                                    htmlFor="email"
+                                    className="
+                                        mb-1.5
+                                        block
+                                        text-sm
+                                        font-medium
+                                        text-[#463529]
+                                    "
+                                >
+                                    Email
+                                </label>
+
+
+                                <input
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    value={form.email}
+                                    onChange={handleChange}
+                                    disabled={saving}
+                                    placeholder="Enter email address"
+                                    className="
+                                        w-full
+                                        rounded-lg
+                                        border
+                                        border-[#ddd0c1]
+                                        bg-[#fffdfb]
+                                        px-3
+                                        py-2.5
+                                        text-sm
+                                        text-[#2a1d15]
+                                        outline-none
+                                        transition
+                                        focus:border-[#a8652c]
+                                        focus:ring-1
+                                        focus:ring-[#a8652c]
+                                    "
+                                />
+
+                            </div>
+
+
+                            {/* PASSWORD */}
+
+                            <div>
+
+                                <label
+                                    htmlFor="password"
+                                    className="
+                                        mb-1.5
+                                        block
+                                        text-sm
+                                        font-medium
+                                        text-[#463529]
+                                    "
+                                >
+                                    Password
+                                </label>
+
+
+                                <input
+                                    id="password"
+                                    type="password"
+                                    name="password"
+                                    value={form.password}
+                                    onChange={handleChange}
+                                    disabled={saving}
+                                    placeholder={
+                                        editingUser
+                                            ? "Leave blank to keep current password"
+                                            : "Enter password"
+                                    }
+                                    className="
+                                        w-full
+                                        rounded-lg
+                                        border
+                                        border-[#ddd0c1]
+                                        bg-[#fffdfb]
+                                        px-3
+                                        py-2.5
+                                        text-sm
+                                        text-[#2a1d15]
+                                        outline-none
+                                        transition
+                                        focus:border-[#a8652c]
+                                        focus:ring-1
+                                        focus:ring-[#a8652c]
+                                    "
+                                />
+
+
+                                {editingUser && (
+
+                                    <p
+                                        className="
+                                            mt-1.5
+                                            text-xs
+                                            text-[#9a8778]
+                                        "
+                                    >
+                                        Leave this field empty if you
+                                        don't want to change the password.
+                                    </p>
+
+                                )}
+
+                            </div>
+
+
+                            {/* ROLE */}
+
+                            <div>
+
+                                <label
+                                    htmlFor="role"
+                                    className="
+                                        mb-1.5
+                                        block
+                                        text-sm
+                                        font-medium
+                                        text-[#463529]
+                                    "
+                                >
+                                    Role
+                                </label>
+
+
+                                <select
+                                    id="role"
+                                    name="role"
+                                    value={form.role}
+                                    onChange={handleChange}
+                                    disabled={saving}
+                                    className="
+                                        w-full
+                                        rounded-lg
+                                        border
+                                        border-[#ddd0c1]
+                                        bg-[#fffdfb]
+                                        px-3
+                                        py-2.5
+                                        text-sm
+                                        text-[#2a1d15]
+                                        outline-none
+                                        transition
+                                        focus:border-[#a8652c]
+                                        focus:ring-1
+                                        focus:ring-[#a8652c]
+                                    "
+                                >
+
+                                    <option value="USER">
+                                        USER
+                                    </option>
+
+                                    <option value="ADMIN">
+                                        ADMIN
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            {/* =================================================
+                                FORM BUTTONS
+                            ================================================= */}
+
+                            <div
+                                className="
+                                    flex
+                                    justify-end
+                                    gap-3
+                                    pt-2
+                                "
+                            >
+
+                                <button
+                                    type="button"
+                                    onClick={handleCloseForm}
+                                    disabled={saving}
+                                    className="
+                                        rounded-lg
+                                        border
+                                        border-[#ddd0c1]
+                                        bg-white
+                                        px-4
+                                        py-2.5
+                                        text-sm
+                                        font-medium
+                                        text-[#735e50]
+                                        transition
+                                        hover:bg-[#f5ede3]
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-50
+                                    "
+                                >
+                                    Cancel
+                                </button>
+
+
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="
+                                        rounded-lg
+                                        bg-[#a8652c]
+                                        px-4
+                                        py-2.5
+                                        text-sm
+                                        font-medium
+                                        text-white
+                                        transition
+                                        hover:bg-[#8f501e]
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-50
+                                    "
+                                >
+
+                                    {saving
+                                        ? "Saving..."
+                                        : editingUser
+                                            ? "Update User"
+                                            : "Create User"}
+
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                    </div>
 
                 </div>
 
-
-                {/* ERROR */}
-
-                {error && (
-
-                    <div
-                        className="
-                            mb-4
-                            rounded-lg
-                            border
-                            border-red-200
-                            bg-red-50
-                            px-3
-                            py-2
-                            text-xs
-                            text-red-700
-                        "
-                    >
-                        {error}
-                    </div>
-
-                )}
-
-
-                <form
-                    onSubmit={handleSubmit}
-                    className="space-y-4"
-                >
-
-                    {/* NAME */}
-
-                    <div>
-
-                        <label
-                            className="
-                                mb-1.5
-                                block
-                                text-xs
-                                font-medium
-                                text-[#463529]
-                            "
-                        >
-                            Name
-                        </label>
-
-
-                        <input
-                            value={name}
-                            onChange={(e) =>
-                                setName(
-                                    e.target.value
-                                )
-                            }
-                            placeholder="Enter member name"
-                            disabled={loading}
-                            className="
-                                w-full
-                                rounded-lg
-                                border
-                                border-[#ddd0c1]
-                                bg-white
-                                px-3
-                                py-2.5
-                                text-sm
-                                outline-none
-                                focus:border-[#a8652c]
-                            "
-                        />
-
-                    </div>
-
-
-                    {/* EMAIL */}
-
-                    <div>
-
-                        <label
-                            className="
-                                mb-1.5
-                                block
-                                text-xs
-                                font-medium
-                                text-[#463529]
-                            "
-                        >
-                            Email
-                        </label>
-
-
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) =>
-                                setEmail(
-                                    e.target.value
-                                )
-                            }
-                            placeholder="Enter email"
-                            disabled={loading}
-                            className="
-                                w-full
-                                rounded-lg
-                                border
-                                border-[#ddd0c1]
-                                bg-white
-                                px-3
-                                py-2.5
-                                text-sm
-                                outline-none
-                                focus:border-[#a8652c]
-                            "
-                        />
-
-                    </div>
-
-
-                    {/* PASSWORD */}
-
-                    <div>
-
-                        <label
-                            className="
-                                mb-1.5
-                                block
-                                text-xs
-                                font-medium
-                                text-[#463529]
-                            "
-                        >
-                            Password
-                        </label>
-
-
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) =>
-                                setPassword(
-                                    e.target.value
-                                )
-                            }
-                            placeholder={
-                                editing
-                                    ? "Leave blank to keep current password"
-                                    : "Enter password"
-                            }
-                            disabled={loading}
-                            className="
-                                w-full
-                                rounded-lg
-                                border
-                                border-[#ddd0c1]
-                                bg-white
-                                px-3
-                                py-2.5
-                                text-sm
-                                outline-none
-                                focus:border-[#a8652c]
-                            "
-                        />
-
-                    </div>
-
-
-                    {/* ROLE */}
-
-                    <div>
-
-                        <label
-                            className="
-                                mb-1.5
-                                block
-                                text-xs
-                                font-medium
-                                text-[#463529]
-                            "
-                        >
-                            Role
-                        </label>
-
-
-                        <select
-                            value={role}
-                            onChange={(e) =>
-                                setRole(
-                                    e.target.value
-                                )
-                            }
-                            disabled={loading}
-                            className="
-                                w-full
-                                rounded-lg
-                                border
-                                border-[#ddd0c1]
-                                bg-white
-                                px-3
-                                py-2.5
-                                text-sm
-                                outline-none
-                                focus:border-[#a8652c]
-                            "
-                        >
-
-                            <option value="USER">
-                                USER
-                            </option>
-
-                            <option value="ADMIN">
-                                ADMIN
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-                    {/* BUTTONS */}
-
-                    <div
-                        className="
-                            flex
-                            justify-end
-                            gap-3
-                            pt-2
-                        "
-                    >
-
-                        <button
-                            type="button"
-                            onClick={onCancel}
-                            disabled={loading}
-                            className="
-                                rounded-lg
-                                border
-                                border-[#ddd0c1]
-                                bg-white
-                                px-4
-                                py-2.5
-                                text-sm
-                                font-medium
-                                text-[#73533b]
-                                hover:bg-[#f5ede3]
-                            "
-                        >
-                            Cancel
-                        </button>
-
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="
-                                rounded-lg
-                                bg-[#a8652c]
-                                px-4
-                                py-2.5
-                                text-sm
-                                font-medium
-                                text-white
-                                hover:bg-[#8f501e]
-                                disabled:opacity-50
-                            "
-                        >
-
-                            {loading
-                                ? "Saving..."
-                                : editing
-                                    ? "Update Member"
-                                    : "Add Member"}
-
-                        </button>
-
-                    </div>
-
-                </form>
-
-            </div>
+            )}
 
         </div>
     );

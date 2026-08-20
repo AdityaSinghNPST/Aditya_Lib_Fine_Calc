@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 
 import {
+    ArrowLeft,
     Settings,
-    Save,
     Clock,
     IndianRupee,
+    Save,
     CheckCircle,
     AlertCircle,
+    X,
 } from "lucide-react";
+
+import { Link } from "react-router-dom";
 
 import Navbar from "../../components/layout/Navbar";
 
@@ -15,7 +19,7 @@ import api from "../../services/api";
 
 
 // =========================================================
-// ADMIN SETTINGS
+// ADMIN SETTINGS PAGE
 // =========================================================
 
 export default function AdminSettings() {
@@ -24,23 +28,23 @@ export default function AdminSettings() {
     // STATE
     // =====================================================
 
-    const [borrowedDays, setBorrowedDays] =
-        useState("");
+    const [loading, setLoading] = useState(true);
 
-    const [finePerDay, setFinePerDay] =
-        useState("");
+    const [saving, setSaving] = useState(false);
 
-    const [loading, setLoading] =
-        useState(true);
+    const [error, setError] = useState("");
 
-    const [saving, setSaving] =
-        useState(false);
+    const [success, setSuccess] = useState("");
 
-    const [error, setError] =
-        useState("");
 
-    const [success, setSuccess] =
-        useState("");
+    // =====================================================
+    // FORM
+    // =====================================================
+
+    const [form, setForm] = useState({
+        borrowingPeriodDays: "",
+        finePerDay: "",
+    });
 
 
     // =====================================================
@@ -59,29 +63,30 @@ export default function AdminSettings() {
                 await api.settings.get();
 
 
-            /*
-             * These names should match the backend
-             * settings response.
-             */
+            setForm({
+                borrowingPeriodDays:
+                    data?.borrowingPeriodDays ??
+                    data?.loanPeriodDays ??
+                    data?.borrowingPeriod ??
+                    "",
 
-            setBorrowedDays(
-                data?.borrowedDays ??
-                data?.allowedDays ??
-                ""
-            );
-
-
-            setFinePerDay(
-                data?.finePerDay ??
-                data?.fineAmount ??
-                ""
-            );
+                finePerDay:
+                    data?.finePerDay ??
+                    data?.fineAmountPerDay ??
+                    data?.fine ??
+                    "",
+            });
 
         } catch (err) {
 
+            console.error(
+                "Failed to load settings:",
+                err
+            );
+
             setError(
                 err.message ||
-                "Unable to load settings."
+                "Unable to load library settings."
             );
 
         } finally {
@@ -91,11 +96,34 @@ export default function AdminSettings() {
     }
 
 
+    // =====================================================
+    // LOAD WHEN PAGE OPENS
+    // =====================================================
+
     useEffect(() => {
 
         loadSettings();
 
     }, []);
+
+
+    // =====================================================
+    // HANDLE INPUT
+    // =====================================================
+
+    function handleChange(event) {
+
+        const {
+            name,
+            value,
+        } = event.target;
+
+
+        setForm((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
+    }
 
 
     // =====================================================
@@ -111,39 +139,50 @@ export default function AdminSettings() {
         setSuccess("");
 
 
-        // Convert input values to numbers.
-
-        const days =
-            Number(borrowedDays);
-
-        const fine =
-            Number(finePerDay);
-
-
         // =================================================
-        // VALIDATION
+        // VALIDATE BORROWING PERIOD
         // =================================================
+
+        const borrowingPeriod =
+            Number(
+                form.borrowingPeriodDays
+            );
+
 
         if (
-            !Number.isInteger(days) ||
-            days <= 0
+            !Number.isFinite(
+                borrowingPeriod
+            ) ||
+            borrowingPeriod <= 0
         ) {
 
             setError(
-                "Borrowed days must be a positive whole number."
+                "Borrowing period must be greater than 0."
             );
 
             return;
         }
 
 
+        // =================================================
+        // VALIDATE FINE
+        // =================================================
+
+        const finePerDay =
+            Number(
+                form.finePerDay
+            );
+
+
         if (
-            !Number.isFinite(fine) ||
-            fine < 0
+            !Number.isFinite(
+                finePerDay
+            ) ||
+            finePerDay < 0
         ) {
 
             setError(
-                "Fine amount must be zero or greater."
+                "Fine per day cannot be negative."
             );
 
             return;
@@ -157,36 +196,36 @@ export default function AdminSettings() {
 
             await api.settings.update({
 
-                borrowedDays:
-                    days,
+                borrowingPeriodDays:
+                    borrowingPeriod,
 
                 finePerDay:
-                    fine,
+                    finePerDay,
 
             });
 
 
             setSuccess(
-                "Settings updated successfully."
+                "Library settings updated successfully."
             );
 
-
-            /*
-             * Remove the success message after
-             * a few seconds.
-             */
 
             setTimeout(() => {
 
                 setSuccess("");
 
-            }, 3000);
+            }, 4000);
 
         } catch (err) {
 
+            console.error(
+                "Failed to update settings:",
+                err
+            );
+
             setError(
                 err.message ||
-                "Unable to update settings."
+                "Unable to update library settings."
             );
 
         } finally {
@@ -197,53 +236,7 @@ export default function AdminSettings() {
 
 
     // =====================================================
-    // LOADING
-    // =====================================================
-
-    if (loading) {
-
-        return (
-
-            <div
-                className="
-                    min-h-screen
-                    bg-[#faf4ec]
-                "
-            >
-
-                <Navbar />
-
-
-                <main
-                    className="
-                        mx-auto
-                        flex
-                        min-h-[70vh]
-                        max-w-7xl
-                        items-center
-                        justify-center
-                        px-4
-                    "
-                >
-
-                    <p
-                        className="
-                            text-sm
-                            text-[#735e50]
-                        "
-                    >
-                        Loading settings...
-                    </p>
-
-                </main>
-
-            </div>
-        );
-    }
-
-
-    // =====================================================
-    // PAGE
+    // RENDER
     // =====================================================
 
     return (
@@ -251,29 +244,71 @@ export default function AdminSettings() {
         <div
             className="
                 min-h-screen
+                w-full
                 bg-[#faf4ec]
             "
         >
 
+            {/* =================================================
+                NAVBAR
+            ================================================= */}
+
             <Navbar />
 
 
+            {/* =================================================
+                MAIN CONTENT
+            ================================================= */}
+
             <main
                 className="
-                    mx-auto
-                    max-w-4xl
+                    min-h-[calc(100vh-64px)]
+                    w-full
                     px-4
-                    py-8
+                    py-6
                     sm:px-6
                     lg:px-8
+                    xl:px-10
                 "
             >
+
+                {/* =================================================
+                    BACK BUTTON
+                ================================================= */}
+
+                <Link
+                    to="/admin"
+                    className="
+                        mb-5
+                        inline-flex
+                        items-center
+                        gap-2
+                        rounded-lg
+                        px-3
+                        py-2
+                        text-sm
+                        font-medium
+                        text-[#735e50]
+                        transition
+                        hover:bg-[#f1e3d3]
+                        hover:text-[#2a1d15]
+                    "
+                >
+
+                    <ArrowLeft
+                        className="h-4 w-4"
+                    />
+
+                    Back to Dashboard
+
+                </Link>
+
 
                 {/* =================================================
                     HEADER
                 ================================================= */}
 
-                <div className="mb-8">
+                <div className="mb-6">
 
                     <p
                         className="
@@ -296,7 +331,7 @@ export default function AdminSettings() {
                             text-[#2a1d15]
                         "
                     >
-                        Library Settings
+                        Settings
                     </h1>
 
 
@@ -307,53 +342,15 @@ export default function AdminSettings() {
                             text-[#735e50]
                         "
                     >
-                        Configure the borrowing period and
-                        automatic fine calculation.
+                        Configure the library borrowing and fine rules.
                     </p>
 
                 </div>
 
 
                 {/* =================================================
-                    ALERTS
+                    SUCCESS MESSAGE
                 ================================================= */}
-
-                {error && (
-
-                    <div
-                        className="
-                            mb-5
-                            flex
-                            items-start
-                            gap-3
-                            rounded-lg
-                            border
-                            border-red-200
-                            bg-red-50
-                            px-4
-                            py-3
-                            text-sm
-                            text-red-700
-                        "
-                    >
-
-                        <AlertCircle
-                            className="
-                                mt-0.5
-                                h-4
-                                w-4
-                                shrink-0
-                            "
-                        />
-
-                        <span>
-                            {error}
-                        </span>
-
-                    </div>
-
-                )}
-
 
                 {success && (
 
@@ -361,8 +358,8 @@ export default function AdminSettings() {
                         className="
                             mb-5
                             flex
-                            items-start
-                            gap-3
+                            items-center
+                            gap-2
                             rounded-lg
                             border
                             border-green-200
@@ -375,12 +372,7 @@ export default function AdminSettings() {
                     >
 
                         <CheckCircle
-                            className="
-                                mt-0.5
-                                h-4
-                                w-4
-                                shrink-0
-                            "
+                            className="h-4 w-4"
                         />
 
                         <span>
@@ -393,12 +385,77 @@ export default function AdminSettings() {
 
 
                 {/* =================================================
+                    ERROR MESSAGE
+                ================================================= */}
+
+                {error && (
+
+                    <div
+                        className="
+                            mb-5
+                            flex
+                            items-center
+                            justify-between
+                            rounded-lg
+                            border
+                            border-red-200
+                            bg-red-50
+                            px-4
+                            py-3
+                            text-sm
+                            text-red-700
+                        "
+                    >
+
+                        <div
+                            className="
+                                flex
+                                items-center
+                                gap-2
+                            "
+                        >
+
+                            <AlertCircle
+                                className="h-4 w-4"
+                            />
+
+                            <span>
+                                {error}
+                            </span>
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setError("")
+                            }
+                            className="
+                                rounded
+                                p-1
+                                hover:bg-red-100
+                            "
+                        >
+
+                            <X
+                                className="h-4 w-4"
+                            />
+
+                        </button>
+
+                    </div>
+
+                )}
+
+
+                {/* =================================================
                     SETTINGS CARD
                 ================================================= */}
 
-                <form
-                    onSubmit={handleSubmit}
+                <div
                     className="
+                        max-w-3xl
                         rounded-xl
                         border
                         border-[#e5d7c5]
@@ -407,10 +464,15 @@ export default function AdminSettings() {
                     "
                 >
 
-                    {/* CARD HEADER */}
+                    {/* =================================================
+                        CARD HEADER
+                    ================================================= */}
 
                     <div
                         className="
+                            flex
+                            items-center
+                            gap-4
                             border-b
                             border-[#e5d7c5]
                             px-6
@@ -421,352 +483,45 @@ export default function AdminSettings() {
                         <div
                             className="
                                 flex
+                                h-11
+                                w-11
                                 items-center
-                                gap-3
-                            "
-                        >
-
-                            <div
-                                className="
-                                    flex
-                                    h-10
-                                    w-10
-                                    items-center
-                                    justify-center
-                                    rounded-lg
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
-                                "
-                            >
-
-                                <Settings
-                                    className="h-5 w-5"
-                                />
-
-                            </div>
-
-
-                            <div>
-
-                                <h2
-                                    className="
-                                        font-semibold
-                                        text-[#2a1d15]
-                                    "
-                                >
-                                    Borrowing & Fine Rules
-                                </h2>
-
-
-                                <p
-                                    className="
-                                        mt-1
-                                        text-xs
-                                        text-[#9a8778]
-                                    "
-                                >
-                                    These values are used by
-                                    the automatic fine calculation.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    {/* FORM BODY */}
-
-                    <div className="space-y-6 p-6">
-
-                        {/* =================================================
-                            BORROWED DAYS
-                        ================================================= */}
-
-                        <div>
-
-                            <div
-                                className="
-                                    mb-2
-                                    flex
-                                    items-center
-                                    gap-2
-                                "
-                            >
-
-                                <Clock
-                                    className="
-                                        h-4
-                                        w-4
-                                        text-[#a8652c]
-                                    "
-                                />
-
-
-                                <label
-                                    className="
-                                        text-sm
-                                        font-medium
-                                        text-[#463529]
-                                    "
-                                >
-                                    Borrowing Period
-                                </label>
-
-                            </div>
-
-
-                            <div
-                                className="
-                                    flex
-                                    items-center
-                                    gap-3
-                                "
-                            >
-
-                                <input
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    value={borrowedDays}
-                                    onChange={(event) =>
-                                        setBorrowedDays(
-                                            event.target.value
-                                        )
-                                    }
-                                    disabled={saving}
-                                    className="
-                                        w-full
-                                        max-w-xs
-                                        rounded-lg
-                                        border
-                                        border-[#ddd0c1]
-                                        bg-[#fffdfb]
-                                        px-3
-                                        py-2.5
-                                        text-sm
-                                        outline-none
-                                        focus:border-[#a8652c]
-                                    "
-                                />
-
-
-                                <span
-                                    className="
-                                        text-sm
-                                        text-[#735e50]
-                                    "
-                                >
-                                    days
-                                </span>
-
-                            </div>
-
-
-                            <p
-                                className="
-                                    mt-2
-                                    text-xs
-                                    leading-5
-                                    text-[#9a8778]
-                                "
-                            >
-                                The number of days a member can keep
-                                a borrowed book before it becomes overdue.
-                            </p>
-
-                        </div>
-
-
-                        {/* =================================================
-                            FINE AMOUNT
-                        ================================================= */}
-
-                        <div>
-
-                            <div
-                                className="
-                                    mb-2
-                                    flex
-                                    items-center
-                                    gap-2
-                                "
-                            >
-
-                                <IndianRupee
-                                    className="
-                                        h-4
-                                        w-4
-                                        text-[#a8652c]
-                                    "
-                                />
-
-
-                                <label
-                                    className="
-                                        text-sm
-                                        font-medium
-                                        text-[#463529]
-                                    "
-                                >
-                                    Fine Per Day
-                                </label>
-
-                            </div>
-
-
-                            <div
-                                className="
-                                    flex
-                                    items-center
-                                    gap-3
-                                "
-                            >
-
-                                <div
-                                    className="
-                                        relative
-                                        w-full
-                                        max-w-xs
-                                    "
-                                >
-
-                                    <span
-                                        className="
-                                            absolute
-                                            left-3
-                                            top-1/2
-                                            -translate-y-1/2
-                                            text-sm
-                                            text-[#735e50]
-                                        "
-                                    >
-                                        ₹
-                                    </span>
-
-
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={finePerDay}
-                                        onChange={(event) =>
-                                            setFinePerDay(
-                                                event.target.value
-                                            )
-                                        }
-                                        disabled={saving}
-                                        className="
-                                            w-full
-                                            rounded-lg
-                                            border
-                                            border-[#ddd0c1]
-                                            bg-[#fffdfb]
-                                            px-3
-                                            py-2.5
-                                            pl-8
-                                            text-sm
-                                            outline-none
-                                            focus:border-[#a8652c]
-                                        "
-                                    />
-
-                                </div>
-
-
-                                <span
-                                    className="
-                                        text-sm
-                                        text-[#735e50]
-                                    "
-                                >
-                                    per overdue day
-                                </span>
-
-                            </div>
-
-
-                            <p
-                                className="
-                                    mt-2
-                                    text-xs
-                                    leading-5
-                                    text-[#9a8778]
-                                "
-                            >
-                                The amount charged for every day
-                                a book is returned after the allowed
-                                borrowing period.
-                            </p>
-
-                        </div>
-
-
-                        {/* =================================================
-                            EXAMPLE
-                        ================================================= */}
-
-                        <div
-                            className="
+                                justify-center
                                 rounded-lg
-                                border
-                                border-[#eadcc9]
-                                bg-[#fcf8f3]
-                                p-4
+                                bg-[#f1e3d3]
+                                text-[#a8652c]
                             "
                         >
 
-                            <p
+                            <Settings
+                                className="h-5 w-5"
+                            />
+
+                        </div>
+
+
+                        <div>
+
+                            <h2
                                 className="
-                                    text-xs
+                                    text-lg
                                     font-semibold
-                                    uppercase
-                                    tracking-wide
-                                    text-[#a8652c]
+                                    text-[#2a1d15]
                                 "
                             >
-                                Example
-                            </p>
+                                Library Rules
+                            </h2>
 
 
                             <p
                                 className="
-                                    mt-2
+                                    mt-1
                                     text-sm
-                                    leading-6
-                                    text-[#735e50]
+                                    text-[#9a8778]
                                 "
                             >
-                                If the borrowing period is{" "}
-
-                                <strong
-                                    className="text-[#2a1d15]"
-                                >
-                                    {borrowedDays || 0} days
-                                </strong>
-
-                                {" "}and the book is returned{" "}
-
-                                <strong
-                                    className="text-[#2a1d15]"
-                                >
-                                    3 days late
-                                </strong>
-
-                                , the fine would be{" "}
-
-                                <strong
-                                    className="text-[#2a1d15]"
-                                >
-                                    ₹
-                                    {
-                                        (
-                                            Number(finePerDay || 0) *
-                                            3
-                                        ).toFixed(2)
-                                    }
-                                </strong>.
+                                These values are used when calculating
+                                borrowing deadlines and fines.
                             </p>
 
                         </div>
@@ -775,51 +530,430 @@ export default function AdminSettings() {
 
 
                     {/* =================================================
-                        FOOTER
+                        FORM
                     ================================================= */}
 
-                    <div
-                        className="
-                            flex
-                            justify-end
-                            border-t
-                            border-[#e5d7c5]
-                            px-6
-                            py-4
-                        "
-                    >
+                    {loading ? (
 
-                        <button
-                            type="submit"
-                            disabled={saving}
+                        <div
                             className="
-                                inline-flex
+                                flex
+                                min-h-64
                                 items-center
-                                gap-2
-                                rounded-lg
-                                bg-[#a8652c]
-                                px-5
-                                py-2.5
-                                text-sm
-                                font-medium
-                                text-white
-                                hover:bg-[#8f501e]
-                                disabled:cursor-not-allowed
-                                disabled:opacity-50
+                                justify-center
+                                px-6
                             "
                         >
 
-                            <Save className="h-4 w-4" />
+                            <p
+                                className="
+                                    text-sm
+                                    text-[#735e50]
+                                "
+                            >
+                                Loading settings...
+                            </p>
 
-                            {saving
-                                ? "Saving..."
-                                : "Save Settings"}
+                        </div>
 
-                        </button>
+                    ) : (
 
-                    </div>
+                        <form
+                            onSubmit={
+                                handleSubmit
+                            }
+                            className="
+                                space-y-6
+                                p-6
+                            "
+                        >
 
-                </form>
+                            {/* =================================================
+                                BORROWING PERIOD
+                            ================================================= */}
+
+                            <div
+                                className="
+                                    rounded-xl
+                                    border
+                                    border-[#e5d7c5]
+                                    bg-[#fffdfb]
+                                    p-5
+                                "
+                            >
+
+                                <div
+                                    className="
+                                        mb-4
+                                        flex
+                                        items-start
+                                        gap-3
+                                    "
+                                >
+
+                                    <div
+                                        className="
+                                            flex
+                                            h-10
+                                            w-10
+                                            shrink-0
+                                            items-center
+                                            justify-center
+                                            rounded-lg
+                                            bg-[#f1e3d3]
+                                            text-[#a8652c]
+                                        "
+                                    >
+
+                                        <Clock
+                                            className="h-5 w-5"
+                                        />
+
+                                    </div>
+
+
+                                    <div>
+
+                                        <h3
+                                            className="
+                                                text-sm
+                                                font-semibold
+                                                text-[#2a1d15]
+                                            "
+                                        >
+                                            Borrowing Period
+                                        </h3>
+
+
+                                        <p
+                                            className="
+                                                mt-1
+                                                text-xs
+                                                text-[#9a8778]
+                                            "
+                                        >
+                                            Number of days a member can
+                                            keep a borrowed book.
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div>
+
+                                    <label
+                                        htmlFor="borrowingPeriodDays"
+                                        className="
+                                            mb-1.5
+                                            block
+                                            text-sm
+                                            font-medium
+                                            text-[#463529]
+                                        "
+                                    >
+                                        Borrowing period in days
+                                    </label>
+
+
+                                    <input
+                                        id="borrowingPeriodDays"
+                                        type="number"
+                                        min="1"
+                                        name="borrowingPeriodDays"
+                                        value={
+                                            form.borrowingPeriodDays
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        disabled={saving}
+                                        placeholder="Example: 14"
+                                        className="
+                                            w-full
+                                            rounded-lg
+                                            border
+                                            border-[#ddd0c1]
+                                            bg-white
+                                            px-3
+                                            py-2.5
+                                            text-sm
+                                            text-[#2a1d15]
+                                            outline-none
+                                            transition
+                                            focus:border-[#a8652c]
+                                            focus:ring-1
+                                            focus:ring-[#a8652c]
+                                            sm:max-w-sm
+                                        "
+                                    />
+
+                                </div>
+
+                            </div>
+
+
+                            {/* =================================================
+                                FINE
+                            ================================================= */}
+
+                            <div
+                                className="
+                                    rounded-xl
+                                    border
+                                    border-[#e5d7c5]
+                                    bg-[#fffdfb]
+                                    p-5
+                                "
+                            >
+
+                                <div
+                                    className="
+                                        mb-4
+                                        flex
+                                        items-start
+                                        gap-3
+                                    "
+                                >
+
+                                    <div
+                                        className="
+                                            flex
+                                            h-10
+                                            w-10
+                                            shrink-0
+                                            items-center
+                                            justify-center
+                                            rounded-lg
+                                            bg-[#f1e3d3]
+                                            text-[#a8652c]
+                                        "
+                                    >
+
+                                        <IndianRupee
+                                            className="h-5 w-5"
+                                        />
+
+                                    </div>
+
+
+                                    <div>
+
+                                        <h3
+                                            className="
+                                                text-sm
+                                                font-semibold
+                                                text-[#2a1d15]
+                                            "
+                                        >
+                                            Fine Per Day
+                                        </h3>
+
+
+                                        <p
+                                            className="
+                                                mt-1
+                                                text-xs
+                                                text-[#9a8778]
+                                            "
+                                        >
+                                            Amount charged for each day
+                                            a book is overdue.
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div>
+
+                                    <label
+                                        htmlFor="finePerDay"
+                                        className="
+                                            mb-1.5
+                                            block
+                                            text-sm
+                                            font-medium
+                                            text-[#463529]
+                                        "
+                                    >
+                                        Fine amount per day
+                                    </label>
+
+
+                                    <div
+                                        className="
+                                            relative
+                                            sm:max-w-sm
+                                        "
+                                    >
+
+                                        <span
+                                            className="
+                                                absolute
+                                                left-3
+                                                top-1/2
+                                                -translate-y-1/2
+                                                text-sm
+                                                text-[#9a8778]
+                                            "
+                                        >
+                                            ₹
+                                        </span>
+
+
+                                        <input
+                                            id="finePerDay"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            name="finePerDay"
+                                            value={
+                                                form.finePerDay
+                                            }
+                                            onChange={
+                                                handleChange
+                                            }
+                                            disabled={saving}
+                                            placeholder="Example: 5"
+                                            className="
+                                                w-full
+                                                rounded-lg
+                                                border
+                                                border-[#ddd0c1]
+                                                bg-white
+                                                py-2.5
+                                                pl-8
+                                                pr-3
+                                                text-sm
+                                                text-[#2a1d15]
+                                                outline-none
+                                                transition
+                                                focus:border-[#a8652c]
+                                                focus:ring-1
+                                                focus:ring-[#a8652c]
+                                            "
+                                        />
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            {/* =================================================
+                                INFO
+                            ================================================= */}
+
+                            <div
+                                className="
+                                    rounded-lg
+                                    border
+                                    border-[#e5d7c5]
+                                    bg-[#faf4ec]
+                                    px-4
+                                    py-3
+                                    text-sm
+                                    text-[#735e50]
+                                "
+                            >
+
+                                <p>
+
+                                    <span
+                                        className="
+                                            font-medium
+                                            text-[#463529]
+                                        "
+                                    >
+                                        Example:
+                                    </span>{" "}
+
+                                    If the borrowing period is{" "}
+
+                                    <span
+                                        className="
+                                            font-medium
+                                            text-[#2a1d15]
+                                        "
+                                    >
+                                        14 days
+                                    </span>{" "}
+
+                                    and the fine is{" "}
+
+                                    <span
+                                        className="
+                                            font-medium
+                                            text-[#2a1d15]
+                                        "
+                                    >
+                                        ₹5 per day
+                                    </span>
+                                    , a book returned 3 days late
+                                    would have a fine of ₹15.
+
+                                </p>
+
+                            </div>
+
+
+                            {/* =================================================
+                                SAVE BUTTON
+                            ================================================= */}
+
+                            <div
+                                className="
+                                    flex
+                                    justify-end
+                                    border-t
+                                    border-[#e5d7c5]
+                                    pt-5
+                                "
+                            >
+
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="
+                                        inline-flex
+                                        items-center
+                                        justify-center
+                                        gap-2
+                                        rounded-lg
+                                        bg-[#a8652c]
+                                        px-5
+                                        py-2.5
+                                        text-sm
+                                        font-medium
+                                        text-white
+                                        transition
+                                        hover:bg-[#8f501e]
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-50
+                                    "
+                                >
+
+                                    <Save
+                                        className="h-4 w-4"
+                                    />
+
+                                    {saving
+                                        ? "Saving..."
+                                        : "Save Settings"}
+
+                                </button>
+
+                            </div>
+
+                        </form>
+
+                    )}
+
+                </div>
 
             </main>
 

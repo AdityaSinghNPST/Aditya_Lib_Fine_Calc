@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 
 import {
+    ArrowLeft,
     BookOpen,
     Search,
-    X,
     CheckCircle,
     AlertCircle,
+    X,
+    Library,
 } from "lucide-react";
+
+import { Link } from "react-router-dom";
 
 import Navbar from "../../components/layout/Navbar";
 
@@ -20,26 +24,43 @@ import api from "../../services/api";
 export default function MemberBooks() {
 
     // =====================================================
-    // STATE
+    // BOOKS
     // =====================================================
 
-    const [books, setBooks] =
-        useState([]);
+    const [books, setBooks] = useState([]);
 
-    const [loading, setLoading] =
-        useState(true);
+    const [loading, setLoading] = useState(true);
 
-    const [borrowingId, setBorrowingId] =
-        useState(null);
+    const [borrowingId, setBorrowingId] = useState(null);
 
-    const [search, setSearch] =
-        useState("");
 
-    const [error, setError] =
-        useState("");
+    // =====================================================
+    // SEARCH
+    // =====================================================
 
-    const [success, setSuccess] =
-        useState("");
+    const [search, setSearch] = useState("");
+
+
+    // =====================================================
+    // PAGINATION
+    // =====================================================
+
+    const [page, setPage] = useState(0);
+
+    const pageSize = 10;
+
+    const [totalPages, setTotalPages] = useState(1);
+
+    const [totalElements, setTotalElements] = useState(0);
+
+
+    // =====================================================
+    // MESSAGES
+    // =====================================================
+
+    const [error, setError] = useState("");
+
+    const [success, setSuccess] = useState("");
 
 
     // =====================================================
@@ -54,30 +75,73 @@ export default function MemberBooks() {
 
             setError("");
 
+
             const data =
                 await api.books.getAll({
-                    page: 0,
-                    size: 100,
+
+                    page,
+
+                    size: pageSize,
+
+                    title: search,
+
                 });
 
 
-            if (Array.isArray(data)) {
+            // =================================================
+            // SPRING PAGE RESPONSE
+            // =================================================
 
-                setBooks(data);
-
-            } else if (
+            if (
                 data &&
                 Array.isArray(data.content)
             ) {
 
                 setBooks(data.content);
 
-            } else {
+                setTotalPages(
+                    data.totalPages || 1
+                );
 
-                setBooks([]);
+                setTotalElements(
+                    data.totalElements ||
+                    data.content.length
+                );
+
+                return;
             }
 
+
+            // =================================================
+            // NORMAL ARRAY
+            // =================================================
+
+            if (Array.isArray(data)) {
+
+                setBooks(data);
+
+                setTotalPages(1);
+
+                setTotalElements(
+                    data.length
+                );
+
+                return;
+            }
+
+
+            setBooks([]);
+
+            setTotalPages(1);
+
+            setTotalElements(0);
+
         } catch (err) {
+
+            console.error(
+                "Failed to load books:",
+                err
+            );
 
             setError(
                 err.message ||
@@ -91,11 +155,82 @@ export default function MemberBooks() {
     }
 
 
+    // =====================================================
+    // INITIAL LOAD / SEARCH / PAGE
+    // =====================================================
+
     useEffect(() => {
 
         loadBooks();
 
-    }, []);
+    }, [page, search]);
+
+
+    // =====================================================
+    // SEARCH
+    // =====================================================
+
+    function handleSearch(event) {
+
+        setSearch(
+            event.target.value
+        );
+
+        setPage(0);
+    }
+
+
+    // =====================================================
+    // CHECK AVAILABILITY
+    // =====================================================
+
+    function isAvailable(book) {
+
+        if (
+            typeof book.available ===
+            "boolean"
+        ) {
+
+            return book.available;
+        }
+
+
+        if (
+            typeof book.isAvailable ===
+            "boolean"
+        ) {
+
+            return book.isAvailable;
+        }
+
+
+        if (
+            typeof book.availableCopies ===
+            "number"
+        ) {
+
+            return book.availableCopies > 0;
+        }
+
+
+        if (
+            typeof book.copiesAvailable ===
+            "number"
+        ) {
+
+            return book.copiesAvailable > 0;
+        }
+
+
+        /*
+         * If the backend does not provide
+         * availability, don't prevent
+         * the member from attempting
+         * to borrow the book.
+         */
+
+        return true;
+    }
 
 
     // =====================================================
@@ -104,20 +239,33 @@ export default function MemberBooks() {
 
     async function handleBorrow(book) {
 
+        if (!book?.id) {
+
+            setError(
+                "Book ID is missing."
+            );
+
+            return;
+        }
+
+
         const confirmed =
             window.confirm(
-                `Borrow "${book.title}"?`
+                `Do you want to borrow "${book.title}"?`
             );
 
 
         if (!confirmed) {
+
             return;
         }
 
 
         try {
 
-            setBorrowingId(book.id);
+            setBorrowingId(
+                book.id
+            );
 
             setError("");
 
@@ -134,17 +282,11 @@ export default function MemberBooks() {
             );
 
 
-            /*
-             * Reload the books so the availability
-             * shown on screen is updated.
-             */
+            // Refresh books so availability
+            // is updated.
 
             await loadBooks();
 
-
-            /*
-             * Remove success message after a few seconds.
-             */
 
             setTimeout(() => {
 
@@ -153,6 +295,12 @@ export default function MemberBooks() {
             }, 4000);
 
         } catch (err) {
+
+            console.error(
+                "Failed to borrow book:",
+                err
+            );
+
 
             setError(
                 err.message ||
@@ -167,43 +315,21 @@ export default function MemberBooks() {
 
 
     // =====================================================
-    // SEARCH
+    // INITIAL
     // =====================================================
 
-    const filteredBooks =
-        books.filter((book) => {
+    function getInitial(title) {
 
-            const value =
-                search
-                    .toLowerCase()
-                    .trim();
+        if (!title) {
 
-
-            if (!value) {
-                return true;
-            }
+            return "?";
+        }
 
 
-            return (
-
-                String(book.title || "")
-                    .toLowerCase()
-                    .includes(value)
-
-                ||
-
-                String(book.author || "")
-                    .toLowerCase()
-                    .includes(value)
-
-                ||
-
-                String(book.isbn || "")
-                    .toLowerCase()
-                    .includes(value)
-
-            );
-        });
+        return title
+            .charAt(0)
+            .toUpperCase();
+    }
 
 
     // =====================================================
@@ -215,66 +341,187 @@ export default function MemberBooks() {
         <div
             className="
                 min-h-screen
+                w-full
                 bg-[#faf4ec]
             "
         >
 
+            {/* =================================================
+                NAVBAR
+            ================================================= */}
+
             <Navbar />
 
 
+            {/* =================================================
+                MAIN
+            ================================================= */}
+
             <main
                 className="
-                    mx-auto
-                    max-w-7xl
+                    min-h-[calc(100vh-64px)]
+                    w-full
                     px-4
-                    py-8
+                    py-6
                     sm:px-6
                     lg:px-8
+                    xl:px-10
                 "
             >
+
+                {/* =================================================
+                    BACK
+                ================================================= */}
+
+                <Link
+                    to="/member"
+                    className="
+                        mb-5
+                        inline-flex
+                        items-center
+                        gap-2
+                        rounded-lg
+                        px-3
+                        py-2
+                        text-sm
+                        font-medium
+                        text-[#735e50]
+                        transition
+                        hover:bg-[#f1e3d3]
+                        hover:text-[#2a1d15]
+                    "
+                >
+
+                    <ArrowLeft
+                        className="h-4 w-4"
+                    />
+
+                    Back to Dashboard
+
+                </Link>
+
 
                 {/* =================================================
                     HEADER
                 ================================================= */}
 
-                <div className="mb-6">
+                <div
+                    className="
+                        mb-6
+                        flex
+                        flex-col
+                        gap-4
+                        sm:flex-row
+                        sm:items-end
+                        sm:justify-between
+                    "
+                >
 
-                    <p
+                    <div>
+
+                        <p
+                            className="
+                                mb-1
+                                text-xs
+                                font-medium
+                                uppercase
+                                tracking-wider
+                                text-[#a8652c]
+                            "
+                        >
+                            Member Area
+                        </p>
+
+
+                        <h1
+                            className="
+                                text-2xl
+                                font-semibold
+                                text-[#2a1d15]
+                            "
+                        >
+                            Browse Books
+                        </h1>
+
+
+                        <p
+                            className="
+                                mt-1
+                                text-sm
+                                text-[#735e50]
+                            "
+                        >
+                            Find a book and borrow it from the library.
+                        </p>
+
+                    </div>
+
+
+                    <div
                         className="
-                            mb-1
-                            text-xs
-                            font-medium
-                            uppercase
-                            tracking-wider
-                            text-[#a8652c]
-                        "
-                    >
-                        Member Area
-                    </p>
-
-
-                    <h1
-                        className="
-                            text-2xl
-                            font-semibold
-                            text-[#2a1d15]
-                        "
-                    >
-                        Browse Books
-                    </h1>
-
-
-                    <p
-                        className="
-                            mt-1
+                            flex
+                            items-center
+                            gap-2
+                            rounded-lg
+                            border
+                            border-[#e5d7c5]
+                            bg-white
+                            px-4
+                            py-2.5
                             text-sm
                             text-[#735e50]
                         "
                     >
-                        Find an available book and borrow it.
-                    </p>
+
+                        <Library
+                            className="
+                                h-4
+                                w-4
+                                text-[#a8652c]
+                            "
+                        />
+
+                        {totalElements} books
+
+                    </div>
 
                 </div>
+
+
+                {/* =================================================
+                    SUCCESS
+                ================================================= */}
+
+                {success && (
+
+                    <div
+                        className="
+                            mb-5
+                            flex
+                            items-center
+                            gap-2
+                            rounded-lg
+                            border
+                            border-green-200
+                            bg-green-50
+                            px-4
+                            py-3
+                            text-sm
+                            text-green-700
+                        "
+                    >
+
+                        <CheckCircle
+                            className="h-4 w-4"
+                        />
+
+                        <span>
+                            {success}
+                        </span>
+
+                    </div>
+
+                )}
 
 
                 {/* =================================================
@@ -326,45 +573,11 @@ export default function MemberBooks() {
                             }
                         >
 
-                            <X className="h-4 w-4" />
+                            <X
+                                className="h-4 w-4"
+                            />
 
                         </button>
-
-                    </div>
-
-                )}
-
-
-                {/* =================================================
-                    SUCCESS
-                ================================================= */}
-
-                {success && (
-
-                    <div
-                        className="
-                            mb-5
-                            flex
-                            items-center
-                            gap-2
-                            rounded-lg
-                            border
-                            border-green-200
-                            bg-green-50
-                            px-4
-                            py-3
-                            text-sm
-                            text-green-700
-                        "
-                    >
-
-                        <CheckCircle
-                            className="h-4 w-4"
-                        />
-
-                        <span>
-                            {success}
-                        </span>
 
                     </div>
 
@@ -377,7 +590,7 @@ export default function MemberBooks() {
 
                 <div
                     className="
-                        mb-6
+                        mb-5
                         rounded-xl
                         border
                         border-[#e5d7c5]
@@ -405,12 +618,10 @@ export default function MemberBooks() {
                         <input
                             type="text"
                             value={search}
-                            onChange={(event) =>
-                                setSearch(
-                                    event.target.value
-                                )
+                            onChange={
+                                handleSearch
                             }
-                            placeholder="Search by title, author or ISBN..."
+                            placeholder="Search books by title..."
                             className="
                                 w-full
                                 rounded-lg
@@ -421,8 +632,12 @@ export default function MemberBooks() {
                                 pl-9
                                 pr-3
                                 text-sm
+                                text-[#2a1d15]
                                 outline-none
+                                transition
                                 focus:border-[#a8652c]
+                                focus:ring-1
+                                focus:ring-[#a8652c]
                             "
                         />
 
@@ -435,281 +650,562 @@ export default function MemberBooks() {
                     BOOKS
                 ================================================= */}
 
-                {loading ? (
+                <div
+                    className="
+                        overflow-hidden
+                        rounded-xl
+                        border
+                        border-[#e5d7c5]
+                        bg-white
+                        shadow-sm
+                    "
+                >
 
-                    <div
-                        className="
-                            flex
-                            min-h-64
-                            items-center
-                            justify-center
-                            text-sm
-                            text-[#735e50]
-                        "
-                    >
-                        Loading books...
-                    </div>
-
-                ) : filteredBooks.length === 0 ? (
-
-                    <div
-                        className="
-                            flex
-                            min-h-64
-                            flex-col
-                            items-center
-                            justify-center
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                        "
-                    >
+                    {loading ? (
 
                         <div
                             className="
-                                mb-3
                                 flex
-                                h-12
-                                w-12
+                                min-h-64
                                 items-center
                                 justify-center
-                                rounded-full
-                                bg-[#f1e3d3]
-                                text-[#a8652c]
                             "
                         >
 
-                            <BookOpen
-                                className="h-5 w-5"
-                            />
+                            <p
+                                className="
+                                    text-sm
+                                    text-[#735e50]
+                                "
+                            >
+                                Loading books...
+                            </p>
 
                         </div>
 
+                    ) : books.length === 0 ? (
 
-                        <h3
+                        <div
                             className="
-                                font-medium
-                                text-[#2a1d15]
+                                flex
+                                min-h-64
+                                flex-col
+                                items-center
+                                justify-center
+                                px-4
                             "
                         >
-                            No books found
-                        </h3>
+
+                            <div
+                                className="
+                                    mb-3
+                                    flex
+                                    h-12
+                                    w-12
+                                    items-center
+                                    justify-center
+                                    rounded-full
+                                    bg-[#f1e3d3]
+                                    text-[#a8652c]
+                                "
+                            >
+
+                                <BookOpen
+                                    className="h-5 w-5"
+                                />
+
+                            </div>
 
 
-                        <p
+                            <h3
+                                className="
+                                    font-medium
+                                    text-[#2a1d15]
+                                "
+                            >
+                                No books found
+                            </h3>
+
+
+                            <p
+                                className="
+                                    mt-1
+                                    text-sm
+                                    text-[#9a8778]
+                                "
+                            >
+                                Try a different search.
+                            </p>
+
+                        </div>
+
+                    ) : (
+
+                        <div
                             className="
-                                mt-1
-                                text-sm
-                                text-[#9a8778]
+                                overflow-x-auto
                             "
                         >
-                            Try a different search.
-                        </p>
 
-                    </div>
+                            <table
+                                className="
+                                    min-w-full
+                                "
+                            >
 
-                ) : (
+                                {/* HEADER */}
 
-                    <div
-                        className="
-                            grid
-                            gap-4
-                            sm:grid-cols-2
-                            lg:grid-cols-3
-                        "
-                    >
+                                <thead
+                                    className="
+                                        border-b
+                                        border-[#e5d7c5]
+                                        bg-[#fcf8f3]
+                                    "
+                                >
 
-                        {filteredBooks.map(
-                            (book) => {
+                                    <tr>
 
-                                /*
-                                 * Support both common backend
-                                 * property names.
-                                 */
-
-                                const available =
-                                    book.available ??
-                                    book.isAvailable ??
-                                    false;
-
-
-                                return (
-
-                                    <div
-                                        key={book.id}
-                                        className="
-                                            rounded-xl
-                                            border
-                                            border-[#e5d7c5]
-                                            bg-white
-                                            p-5
-                                            shadow-sm
-                                            transition
-                                            hover:-translate-y-0.5
-                                            hover:shadow-md
-                                        "
-                                    >
-
-                                        {/* BOOK ICON */}
-
-                                        <div
+                                        <th
                                             className="
-                                                mb-4
-                                                flex
-                                                h-11
-                                                w-11
-                                                items-center
-                                                justify-center
-                                                rounded-lg
-                                                bg-[#f1e3d3]
-                                                text-[#a8652c]
-                                            "
-                                        >
-
-                                            <BookOpen
-                                                className="h-5 w-5"
-                                            />
-
-                                        </div>
-
-
-                                        {/* TITLE */}
-
-                                        <h2
-                                            className="
-                                                text-base
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
                                                 font-semibold
-                                                text-[#2a1d15]
-                                            "
-                                        >
-                                            {book.title}
-                                        </h2>
-
-
-                                        {/* AUTHOR */}
-
-                                        <p
-                                            className="
-                                                mt-1
-                                                text-sm
+                                                uppercase
+                                                tracking-wide
                                                 text-[#735e50]
                                             "
                                         >
-                                            {book.author}
-                                        </p>
+                                            Book
+                                        </th>
 
 
-                                        {/* ISBN */}
-
-                                        <p
+                                        <th
                                             className="
-                                                mt-2
+                                                px-5
+                                                py-3
+                                                text-left
                                                 text-xs
-                                                text-[#9a8778]
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
                                             "
                                         >
-                                            ISBN:{" "}
-                                            {book.isbn || "Not available"}
-                                        </p>
+                                            Author
+                                        </th>
 
 
-                                        {/* STATUS */}
-
-                                        <div
+                                        <th
                                             className="
-                                                mt-4
-                                                flex
-                                                items-center
-                                                justify-between
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
                                             "
                                         >
-
-                                            {available ? (
-
-                                                <span
-                                                    className="
-                                                        inline-flex
-                                                        rounded-full
-                                                        bg-green-50
-                                                        px-2.5
-                                                        py-1
-                                                        text-xs
-                                                        font-medium
-                                                        text-green-700
-                                                    "
-                                                >
-                                                    Available
-                                                </span>
-
-                                            ) : (
-
-                                                <span
-                                                    className="
-                                                        inline-flex
-                                                        rounded-full
-                                                        bg-red-50
-                                                        px-2.5
-                                                        py-1
-                                                        text-xs
-                                                        font-medium
-                                                        text-red-700
-                                                    "
-                                                >
-                                                    Borrowed
-                                                </span>
-
-                                            )}
+                                            Availability
+                                        </th>
 
 
-                                            {/* BORROW BUTTON */}
+                                        <th
+                                            className="
+                                                px-5
+                                                py-3
+                                                text-right
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            Action
+                                        </th>
 
-                                            <button
-                                                type="button"
-                                                disabled={
-                                                    !available ||
-                                                    borrowingId ===
+                                    </tr>
+
+                                </thead>
+
+
+                                {/* BODY */}
+
+                                <tbody>
+
+                                    {books.map(
+                                        (book) => {
+
+                                            const available =
+                                                isAvailable(
+                                                    book
+                                                );
+
+
+                                            return (
+
+                                                <tr
+                                                    key={
                                                         book.id
-                                                }
-                                                onClick={() =>
-                                                    handleBorrow(
-                                                        book
-                                                    )
-                                                }
-                                                className="
-                                                    rounded-lg
-                                                    bg-[#a8652c]
-                                                    px-3
-                                                    py-2
-                                                    text-xs
-                                                    font-medium
-                                                    text-white
-                                                    hover:bg-[#8f501e]
-                                                    disabled:cursor-not-allowed
-                                                    disabled:bg-[#d8c9ba]
-                                                "
-                                            >
+                                                    }
+                                                    className="
+                                                        border-b
+                                                        border-[#eee5dc]
+                                                        last:border-0
+                                                        hover:bg-[#fffaf5]
+                                                    "
+                                                >
 
-                                                {borrowingId ===
-                                                book.id
-                                                    ? "Borrowing..."
-                                                    : available
-                                                        ? "Borrow"
-                                                        : "Unavailable"}
+                                                    {/* BOOK */}
 
-                                            </button>
+                                                    <td
+                                                        className="
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
 
-                                        </div>
+                                                        <div
+                                                            className="
+                                                                flex
+                                                                items-center
+                                                                gap-3
+                                                            "
+                                                        >
 
-                                    </div>
+                                                            <div
+                                                                className="
+                                                                    flex
+                                                                    h-10
+                                                                    w-10
+                                                                    shrink-0
+                                                                    items-center
+                                                                    justify-center
+                                                                    rounded-lg
+                                                                    bg-[#f1e3d3]
+                                                                    text-[#a8652c]
+                                                                "
+                                                            >
 
-                                );
-                            }
-                        )}
+                                                                {
+                                                                    getInitial(
+                                                                        book.title
+                                                                    )
+                                                                }
 
-                    </div>
+                                                            </div>
 
-                )}
+
+                                                            <div>
+
+                                                                <p
+                                                                    className="
+                                                                        whitespace-nowrap
+                                                                        text-sm
+                                                                        font-medium
+                                                                        text-[#2a1d15]
+                                                                    "
+                                                                >
+                                                                    {
+                                                                        book.title ||
+                                                                        "Untitled"
+                                                                    }
+                                                                </p>
+
+
+                                                                <p
+                                                                    className="
+                                                                        mt-0.5
+                                                                        text-xs
+                                                                        text-[#9a8778]
+                                                                    "
+                                                                >
+                                                                    Book #
+                                                                    {book.id}
+                                                                </p>
+
+                                                            </div>
+
+                                                        </div>
+
+                                                    </td>
+
+
+                                                    {/* AUTHOR */}
+
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                            text-sm
+                                                            text-[#735e50]
+                                                        "
+                                                    >
+
+                                                        {
+                                                            book.author ||
+                                                            "Unknown"
+                                                        }
+
+                                                    </td>
+
+
+                                                    {/* AVAILABILITY */}
+
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
+
+                                                        {available ? (
+
+                                                            <span
+                                                                className="
+                                                                    inline-flex
+                                                                    rounded-full
+                                                                    bg-green-50
+                                                                    px-2.5
+                                                                    py-1
+                                                                    text-xs
+                                                                    font-medium
+                                                                    text-green-700
+                                                                "
+                                                            >
+                                                                Available
+                                                            </span>
+
+                                                        ) : (
+
+                                                            <span
+                                                                className="
+                                                                    inline-flex
+                                                                    rounded-full
+                                                                    bg-red-50
+                                                                    px-2.5
+                                                                    py-1
+                                                                    text-xs
+                                                                    font-medium
+                                                                    text-red-700
+                                                                "
+                                                            >
+                                                                Currently Borrowed
+                                                            </span>
+
+                                                        )}
+
+                                                    </td>
+
+
+                                                    {/* ACTION */}
+
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
+
+                                                        <div
+                                                            className="
+                                                                flex
+                                                                justify-end
+                                                            "
+                                                        >
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleBorrow(
+                                                                        book
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    !available ||
+                                                                    borrowingId ===
+                                                                    book.id
+                                                                }
+                                                                className="
+                                                                    rounded-lg
+                                                                    bg-[#a8652c]
+                                                                    px-4
+                                                                    py-2
+                                                                    text-xs
+                                                                    font-medium
+                                                                    text-white
+                                                                    transition
+                                                                    hover:bg-[#8f501e]
+                                                                    disabled:cursor-not-allowed
+                                                                    disabled:opacity-40
+                                                                "
+                                                            >
+
+                                                                {borrowingId ===
+                                                                book.id
+                                                                    ? "Borrowing..."
+                                                                    : "Borrow Book"}
+
+                                                            </button>
+
+                                                        </div>
+
+                                                    </td>
+
+                                                </tr>
+
+                                            );
+                                        }
+                                    )}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    )}
+
+                </div>
+
+
+                {/* =================================================
+                    PAGINATION
+                ================================================= */}
+
+                {!loading &&
+                    books.length > 0 &&
+                    totalPages > 1 && (
+
+                        <div
+                            className="
+                                mt-5
+                                flex
+                                flex-col
+                                gap-3
+                                sm:flex-row
+                                sm:items-center
+                                sm:justify-between
+                            "
+                        >
+
+                            <p
+                                className="
+                                    text-sm
+                                    text-[#735e50]
+                                "
+                            >
+
+                                Page{" "}
+
+                                <span
+                                    className="
+                                        font-medium
+                                        text-[#2a1d15]
+                                    "
+                                >
+                                    {page + 1}
+                                </span>
+
+                                {" "}of{" "}
+
+                                <span
+                                    className="
+                                        font-medium
+                                        text-[#2a1d15]
+                                    "
+                                >
+                                    {totalPages}
+                                </span>
+
+                            </p>
+
+
+                            <div
+                                className="
+                                    flex
+                                    gap-2
+                                "
+                            >
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setPage(
+                                            (previous) =>
+                                                Math.max(
+                                                    previous - 1,
+                                                    0
+                                                )
+                                        )
+                                    }
+                                    disabled={
+                                        page === 0
+                                    }
+                                    className="
+                                        rounded-lg
+                                        border
+                                        border-[#ddd0c1]
+                                        bg-white
+                                        px-4
+                                        py-2
+                                        text-sm
+                                        font-medium
+                                        text-[#735e50]
+                                        transition
+                                        hover:bg-[#f5ede3]
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-40
+                                    "
+                                >
+                                    Previous
+                                </button>
+
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setPage(
+                                            (previous) =>
+                                                Math.min(
+                                                    previous + 1,
+                                                    totalPages - 1
+                                                )
+                                        )
+                                    }
+                                    disabled={
+                                        page >=
+                                        totalPages - 1
+                                    }
+                                    className="
+                                        rounded-lg
+                                        bg-[#a8652c]
+                                        px-4
+                                        py-2
+                                        text-sm
+                                        font-medium
+                                        text-white
+                                        transition
+                                        hover:bg-[#8f501e]
+                                        disabled:cursor-not-allowed
+                                        disabled:opacity-40
+                                    "
+                                >
+                                    Next
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    )}
 
             </main>
 

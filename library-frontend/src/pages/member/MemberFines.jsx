@@ -1,15 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
+    ArrowLeft,
     IndianRupee,
-    Search,
-    X,
+    BookOpen,
+    CalendarDays,
+    Clock,
     AlertCircle,
     CheckCircle,
+    X,
 } from "lucide-react";
 
+import { Link } from "react-router-dom";
+
 import Navbar from "../../components/layout/Navbar";
+
 import api from "../../services/api";
+
+import { useAuth } from "../../context/AuthContext";
 
 
 // =========================================================
@@ -18,13 +26,24 @@ import api from "../../services/api";
 
 export default function MemberFines() {
 
+    // =====================================================
+    // AUTHENTICATED USER
+    // =====================================================
+
+    const {
+        user,
+    } = useAuth();
+
+
+    // =====================================================
+    // STATE
+    // =====================================================
+
     const [fines, setFines] = useState([]);
 
     const [loading, setLoading] = useState(true);
 
     const [error, setError] = useState("");
-
-    const [search, setSearch] = useState("");
 
 
     // =====================================================
@@ -39,27 +58,68 @@ export default function MemberFines() {
 
             setError("");
 
-            const data =
-                await api.fines.getMy();
 
+            /*
+             * The backend endpoint requires the current
+             * user's ID.
+             *
+             * The ID comes from the authenticated user
+             * stored by AuthContext.
+             */
+
+            if (!user?.id) {
+
+                setError(
+                    "Unable to identify the logged-in member."
+                );
+
+                return;
+            }
+
+
+            const data =
+                await api.fines.getByUserId(
+                    user.id
+                );
+
+
+            // =================================================
+            // NORMAL ARRAY RESPONSE
+            // =================================================
 
             if (Array.isArray(data)) {
 
                 setFines(data);
 
-            } else if (
+                return;
+            }
+
+
+            // =================================================
+            // PAGINATED RESPONSE
+            // =================================================
+
+            if (
                 data &&
                 Array.isArray(data.content)
             ) {
 
-                setFines(data.content);
+                setFines(
+                    data.content
+                );
 
-            } else {
-
-                setFines([]);
+                return;
             }
 
+
+            setFines([]);
+
         } catch (err) {
+
+            console.error(
+                "Failed to load fines:",
+                err
+            );
 
             setError(
                 err.message ||
@@ -73,97 +133,238 @@ export default function MemberFines() {
     }
 
 
+    // =====================================================
+    // LOAD WHEN USER IS AVAILABLE
+    // =====================================================
+
     useEffect(() => {
 
-        loadFines();
+        if (user?.id) {
 
-    }, []);
+            loadFines();
+
+        }
+
+    }, [user?.id]);
 
 
     // =====================================================
-    // HELPERS
+    // BOOK TITLE
     // =====================================================
 
-    function getBookTitle(fine) {
+    function getBookTitle(
+        fine
+    ) {
 
         return (
-            fine.book?.title ||
             fine.bookTitle ||
-            "Unknown book"
+
+            fine.book?.title ||
+
+            fine.title ||
+
+            "Unknown Book"
         );
     }
 
 
-    function getAmount(fine) {
+    // =====================================================
+    // DUE DATE
+    // =====================================================
+
+    function getDueDate(
+        fine
+    ) {
 
         return (
+            fine.dueDate ||
+
+            fine.dueAt ||
+
+            null
+        );
+    }
+
+
+    // =====================================================
+    // RETURN DATE
+    // =====================================================
+
+    function getReturnDate(
+        fine
+    ) {
+
+        return (
+            fine.returnDate ||
+
+            fine.returnedAt ||
+
+            null
+        );
+    }
+
+
+    // =====================================================
+    // AMOUNT
+    // =====================================================
+
+    function getAmount(
+        fine
+    ) {
+
+        const amount =
             fine.amount ??
             fine.fineAmount ??
-            fine.totalFine ??
-            0
-        );
+            fine.totalAmount ??
+            0;
+
+
+        const numericAmount =
+            Number(amount);
+
+
+        return Number.isFinite(
+            numericAmount
+        )
+            ? numericAmount
+            : 0;
     }
 
 
-    function getDaysLate(fine) {
+    // =====================================================
+    // OVERDUE DAYS
+    // =====================================================
 
-        return (
-            fine.daysLate ??
-            fine.overdueDays ??
-            fine.lateDays ??
-            0
-        );
-    }
+    function getOverdueDays(
+        fine
+    ) {
+
+        /*
+         * Prefer the value supplied by the backend.
+         */
+
+        if (
+            fine.overdueDays !==
+            undefined &&
+            fine.overdueDays !==
+            null
+        ) {
+
+            return Number(
+                fine.overdueDays
+            );
+        }
 
 
-    function getStatus(fine) {
+        if (
+            fine.daysOverdue !==
+            undefined &&
+            fine.daysOverdue !==
+            null
+        ) {
 
-        return String(
-            fine.status ||
-            (
-                fine.paid
-                    ? "PAID"
-                    : "UNPAID"
+            return Number(
+                fine.daysOverdue
+            );
+        }
+
+
+        /*
+         * Fallback calculation for display only.
+         * The actual fine calculation remains
+         * the responsibility of the backend.
+         */
+
+        const dueDate =
+            getDueDate(fine);
+
+
+        if (!dueDate) {
+
+            return 0;
+        }
+
+
+        const due =
+            new Date(
+                dueDate
+            );
+
+
+        if (
+            Number.isNaN(
+                due.getTime()
             )
-        ).toUpperCase();
-    }
+        ) {
+
+            return 0;
+        }
 
 
-    function getDate(fine) {
+        const returnDate =
+            getReturnDate(fine);
 
-        return (
-            fine.createdAt ||
-            fine.calculatedAt ||
-            fine.date ||
-            fine.fineDate ||
-            "—"
+
+        const end =
+            returnDate
+                ? new Date(returnDate)
+                : new Date();
+
+
+        if (
+            Number.isNaN(
+                end.getTime()
+            )
+        ) {
+
+            return 0;
+        }
+
+
+        const difference =
+            end.getTime() -
+            due.getTime();
+
+
+        return Math.max(
+            Math.ceil(
+                difference /
+                (1000 * 60 * 60 * 24)
+            ),
+            0
         );
     }
 
 
-    function formatDate(value) {
+    // =====================================================
+    // FORMAT DATE
+    // =====================================================
 
-        if (!value || value === "—") {
+    function formatDate(
+        date
+    ) {
+
+        if (!date) {
 
             return "—";
         }
 
 
-        const date =
-            new Date(value);
+        const parsedDate =
+            new Date(date);
 
 
         if (
             Number.isNaN(
-                date.getTime()
+                parsedDate.getTime()
             )
         ) {
 
-            return value;
+            return "—";
         }
 
 
-        return date.toLocaleDateString(
+        return parsedDate.toLocaleDateString(
             "en-IN",
             {
                 day: "2-digit",
@@ -175,44 +376,43 @@ export default function MemberFines() {
 
 
     // =====================================================
-    // SEARCH
+    // FORMAT MONEY
     // =====================================================
 
-    const filteredFines =
-        fines.filter((fine) => {
+    function formatMoney(
+        amount
+    ) {
 
-            const value =
-                search
-                    .toLowerCase()
-                    .trim();
-
-
-            if (!value) {
-
-                return true;
+        return new Intl.NumberFormat(
+            "en-IN",
+            {
+                style: "currency",
+                currency: "INR",
+                maximumFractionDigits: 2,
             }
+        ).format(amount);
+    }
 
 
-            return (
+    // =====================================================
+    // CHECK PAID
+    // =====================================================
 
-                getBookTitle(fine)
-                    .toLowerCase()
-                    .includes(value)
+    function isPaid(
+        fine
+    ) {
 
-                ||
+        return (
+            fine.paid === true ||
 
-                String(fine.id || "")
-                    .toLowerCase()
-                    .includes(value)
+            fine.isPaid === true ||
 
-                ||
-
-                getStatus(fine)
-                    .toLowerCase()
-                    .includes(value)
-
-            );
-        });
+            String(
+                fine.status || ""
+            ).toUpperCase() ===
+            "PAID"
+        );
+    }
 
 
     // =====================================================
@@ -220,12 +420,26 @@ export default function MemberFines() {
     // =====================================================
 
     const totalFine =
-        filteredFines.reduce(
-            (total, fine) =>
-                total +
-                Number(getAmount(fine)),
-            0
-        );
+        useMemo(() => {
+
+            return fines.reduce(
+                (
+                    total,
+                    fine
+                ) => {
+
+                    return (
+                        total +
+                        getAmount(
+                            fine
+                        )
+                    );
+
+                },
+                0
+            );
+
+        }, [fines]);
 
 
     // =====================================================
@@ -233,25 +447,36 @@ export default function MemberFines() {
     // =====================================================
 
     const outstandingFine =
-        filteredFines.reduce(
-            (total, fine) => {
+        useMemo(() => {
 
-                if (
-                    getStatus(fine) ===
-                    "PAID"
-                ) {
+            return fines.reduce(
+                (
+                    total,
+                    fine
+                ) => {
 
-                    return total;
-                }
+                    if (
+                        isPaid(
+                            fine
+                        )
+                    ) {
+
+                        return total;
+                    }
 
 
-                return (
-                    total +
-                    Number(getAmount(fine))
-                );
-            },
-            0
-        );
+                    return (
+                        total +
+                        getAmount(
+                            fine
+                        )
+                    );
+
+                },
+                0
+            );
+
+        }, [fines]);
 
 
     // =====================================================
@@ -263,23 +488,65 @@ export default function MemberFines() {
         <div
             className="
                 min-h-screen
+                w-full
                 bg-[#faf4ec]
             "
         >
 
+            {/* =================================================
+                NAVBAR
+            ================================================= */}
+
             <Navbar />
 
 
+            {/* =================================================
+                MAIN
+            ================================================= */}
+
             <main
                 className="
-                    mx-auto
-                    max-w-7xl
+                    min-h-[calc(100vh-64px)]
+                    w-full
                     px-4
-                    py-8
+                    py-6
                     sm:px-6
                     lg:px-8
+                    xl:px-10
                 "
             >
+
+                {/* =================================================
+                    BACK BUTTON
+                ================================================= */}
+
+                <Link
+                    to="/member"
+                    className="
+                        mb-5
+                        inline-flex
+                        items-center
+                        gap-2
+                        rounded-lg
+                        px-3
+                        py-2
+                        text-sm
+                        font-medium
+                        text-[#735e50]
+                        transition
+                        hover:bg-[#f1e3d3]
+                        hover:text-[#2a1d15]
+                    "
+                >
+
+                    <ArrowLeft
+                        className="h-4 w-4"
+                    />
+
+                    Back to Dashboard
+
+                </Link>
+
 
                 {/* =================================================
                     HEADER
@@ -319,7 +586,7 @@ export default function MemberFines() {
                             text-[#735e50]
                         "
                     >
-                        View fines generated from late book returns.
+                        View fines generated for overdue books.
                     </p>
 
                 </div>
@@ -360,9 +627,7 @@ export default function MemberFines() {
                                 className="h-4 w-4"
                             />
 
-                            <span>
-                                {error}
-                            </span>
+                            {error}
 
                         </div>
 
@@ -374,7 +639,9 @@ export default function MemberFines() {
                             }
                         >
 
-                            <X className="h-4 w-4" />
+                            <X
+                                className="h-4 w-4"
+                            />
 
                         </button>
 
@@ -387,193 +654,173 @@ export default function MemberFines() {
                     SUMMARY
                 ================================================= */}
 
-                <div
-                    className="
-                        mb-5
-                        grid
-                        gap-4
-                        sm:grid-cols-3
-                    "
-                >
+                {!loading && (
 
                     <div
                         className="
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                            p-5
-                            shadow-sm
+                            mb-6
+                            grid
+                            gap-4
+                            sm:grid-cols-2
                         "
                     >
 
-                        <p
+                        {/* TOTAL */}
+
+                        <div
                             className="
-                                text-xs
-                                font-medium
-                                uppercase
-                                tracking-wide
-                                text-[#9a8778]
-                            "
-                        >
-                            Fine Records
-                        </p>
-
-
-                        <p
-                            className="
-                                mt-2
-                                text-2xl
-                                font-semibold
-                                text-[#2a1d15]
-                            "
-                        >
-                            {filteredFines.length}
-                        </p>
-
-                    </div>
-
-
-                    <div
-                        className="
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                            p-5
-                            shadow-sm
-                        "
-                    >
-
-                        <p
-                            className="
-                                text-xs
-                                font-medium
-                                uppercase
-                                tracking-wide
-                                text-[#9a8778]
-                            "
-                        >
-                            Total Fines
-                        </p>
-
-
-                        <p
-                            className="
-                                mt-2
-                                text-2xl
-                                font-semibold
-                                text-[#2a1d15]
-                            "
-                        >
-                            ₹{totalFine.toFixed(2)}
-                        </p>
-
-                    </div>
-
-
-                    <div
-                        className="
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                            p-5
-                            shadow-sm
-                        "
-                    >
-
-                        <p
-                            className="
-                                text-xs
-                                font-medium
-                                uppercase
-                                tracking-wide
-                                text-[#9a8778]
-                            "
-                        >
-                            Outstanding
-                        </p>
-
-
-                        <p
-                            className="
-                                mt-2
-                                text-2xl
-                                font-semibold
-                                text-[#a8652c]
-                            "
-                        >
-                            ₹{outstandingFine.toFixed(2)}
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                {/* =================================================
-                    SEARCH
-                ================================================= */}
-
-                <div
-                    className="
-                        mb-5
-                        rounded-xl
-                        border
-                        border-[#e5d7c5]
-                        bg-white
-                        p-4
-                        shadow-sm
-                    "
-                >
-
-                    <div className="relative">
-
-                        <Search
-                            className="
-                                absolute
-                                left-3
-                                top-1/2
-                                h-4
-                                w-4
-                                -translate-y-1/2
-                                text-[#9a8778]
-                            "
-                        />
-
-
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(event) =>
-                                setSearch(
-                                    event.target.value
-                                )
-                            }
-                            placeholder="Search your fines..."
-                            className="
-                                w-full
-                                rounded-lg
+                                rounded-xl
                                 border
-                                border-[#ddd0c1]
-                                bg-[#fffdfb]
-                                py-2.5
-                                pl-9
-                                pr-3
-                                text-sm
-                                outline-none
-                                focus:border-[#a8652c]
+                                border-[#e5d7c5]
+                                bg-white
+                                p-5
+                                shadow-sm
                             "
-                        />
+                        >
+
+                            <div
+                                className="
+                                    flex
+                                    items-start
+                                    justify-between
+                                "
+                            >
+
+                                <div>
+
+                                    <p
+                                        className="
+                                            text-sm
+                                            text-[#735e50]
+                                        "
+                                    >
+                                        Total Fines
+                                    </p>
+
+
+                                    <p
+                                        className="
+                                            mt-2
+                                            text-2xl
+                                            font-semibold
+                                            text-[#2a1d15]
+                                        "
+                                    >
+                                        {
+                                            formatMoney(
+                                                totalFine
+                                            )
+                                        }
+                                    </p>
+
+                                </div>
+
+
+                                <div
+                                    className="
+                                        flex
+                                        h-10
+                                        w-10
+                                        items-center
+                                        justify-center
+                                        rounded-lg
+                                        bg-[#f1e3d3]
+                                        text-[#a8652c]
+                                    "
+                                >
+
+                                    <IndianRupee
+                                        className="h-5 w-5"
+                                    />
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* OUTSTANDING */}
+
+                        <div
+                            className="
+                                rounded-xl
+                                border
+                                border-[#e5d7c5]
+                                bg-white
+                                p-5
+                                shadow-sm
+                            "
+                        >
+
+                            <div
+                                className="
+                                    flex
+                                    items-start
+                                    justify-between
+                                "
+                            >
+
+                                <div>
+
+                                    <p
+                                        className="
+                                            text-sm
+                                            text-[#735e50]
+                                        "
+                                    >
+                                        Outstanding
+                                    </p>
+
+
+                                    <p
+                                        className="
+                                            mt-2
+                                            text-2xl
+                                            font-semibold
+                                            text-[#2a1d15]
+                                        "
+                                    >
+                                        {
+                                            formatMoney(
+                                                outstandingFine
+                                            )
+                                        }
+                                    </p>
+
+                                </div>
+
+
+                                <div
+                                    className="
+                                        flex
+                                        h-10
+                                        w-10
+                                        items-center
+                                        justify-center
+                                        rounded-lg
+                                        bg-red-50
+                                        text-red-600
+                                    "
+                                >
+
+                                    <AlertCircle
+                                        className="h-5 w-5"
+                                    />
+
+                                </div>
+
+                            </div>
+
+                        </div>
 
                     </div>
 
-                </div>
+                )}
 
 
                 {/* =================================================
-                    TABLE
+                    FINES
                 ================================================= */}
 
                 <div
@@ -595,31 +842,43 @@ export default function MemberFines() {
                                 min-h-64
                                 items-center
                                 justify-center
-                                text-sm
-                                text-[#735e50]
                             "
                         >
-                            Loading your fines...
+
+                            <p
+                                className="
+                                    text-sm
+                                    text-[#735e50]
+                                "
+                            >
+                                Loading your fines...
+                            </p>
+
                         </div>
 
-                    ) : filteredFines.length === 0 ? (
+                    ) : fines.length === 0 ? (
+
+                        /* =========================================
+                           NO FINES
+                        ========================================= */
 
                         <div
                             className="
                                 flex
-                                min-h-64
+                                min-h-72
                                 flex-col
                                 items-center
                                 justify-center
+                                px-4
                             "
                         >
 
                             <div
                                 className="
-                                    mb-3
+                                    mb-4
                                     flex
-                                    h-12
-                                    w-12
+                                    h-14
+                                    w-14
                                     items-center
                                     justify-center
                                     rounded-full
@@ -629,7 +888,7 @@ export default function MemberFines() {
                             >
 
                                 <CheckCircle
-                                    className="h-5 w-5"
+                                    className="h-6 w-6"
                                 />
 
                             </div>
@@ -637,6 +896,7 @@ export default function MemberFines() {
 
                             <h3
                                 className="
+                                    text-lg
                                     font-medium
                                     text-[#2a1d15]
                                 "
@@ -648,20 +908,33 @@ export default function MemberFines() {
                             <p
                                 className="
                                     mt-1
+                                    text-center
                                     text-sm
                                     text-[#9a8778]
                                 "
                             >
-                                You currently have no fine records.
+                                You currently have no library fines.
                             </p>
 
                         </div>
 
                     ) : (
 
-                        <div className="overflow-x-auto">
+                        /* =========================================
+                           TABLE
+                        ========================================= */
 
-                            <table className="min-w-full">
+                        <div
+                            className="
+                                overflow-x-auto
+                            "
+                        >
+
+                            <table
+                                className="
+                                    min-w-full
+                                "
+                            >
 
                                 <thead
                                     className="
@@ -675,6 +948,7 @@ export default function MemberFines() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -691,6 +965,7 @@ export default function MemberFines() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -701,12 +976,13 @@ export default function MemberFines() {
                                                 text-[#735e50]
                                             "
                                         >
-                                            Days Late
+                                            Due Date
                                         </th>
 
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -717,12 +993,13 @@ export default function MemberFines() {
                                                 text-[#735e50]
                                             "
                                         >
-                                            Fine
+                                            Return Date
                                         </th>
 
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -733,12 +1010,30 @@ export default function MemberFines() {
                                                 text-[#735e50]
                                             "
                                         >
-                                            Date
+                                            Overdue
                                         </th>
 
 
                                         <th
                                             className="
+                                                whitespace-nowrap
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            Amount
+                                        </th>
+
+
+                                        <th
+                                            className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -759,18 +1054,33 @@ export default function MemberFines() {
 
                                 <tbody>
 
-                                    {filteredFines.map(
-                                        (fine) => {
+                                    {fines.map(
+                                        (fine, index) => {
 
-                                            const status =
-                                                getStatus(fine);
+                                            const amount =
+                                                getAmount(
+                                                    fine
+                                                );
+
+
+                                            const overdueDays =
+                                                getOverdueDays(
+                                                    fine
+                                                );
+
+
+                                            const paid =
+                                                isPaid(
+                                                    fine
+                                                );
 
 
                                             return (
 
                                                 <tr
                                                     key={
-                                                        fine.id
+                                                        fine.id ??
+                                                        index
                                                     }
                                                     className="
                                                         border-b
@@ -782,7 +1092,12 @@ export default function MemberFines() {
 
                                                     {/* BOOK */}
 
-                                                    <td className="px-5 py-4">
+                                                    <td
+                                                        className="
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
 
                                                         <div
                                                             className="
@@ -806,97 +1121,67 @@ export default function MemberFines() {
                                                                 "
                                                             >
 
-                                                                <IndianRupee
+                                                                <BookOpen
                                                                     className="h-4 w-4"
                                                                 />
 
                                                             </div>
 
 
-                                                            <div>
-
-                                                                <p
-                                                                    className="
-                                                                        text-sm
-                                                                        font-medium
-                                                                        text-[#2a1d15]
-                                                                    "
-                                                                >
-                                                                    {
-                                                                        getBookTitle(
-                                                                            fine
-                                                                        )
-                                                                    }
-                                                                </p>
-
-
-                                                                <p
-                                                                    className="
-                                                                        mt-0.5
-                                                                        text-xs
-                                                                        text-[#9a8778]
-                                                                    "
-                                                                >
-                                                                    Fine ID: {
-                                                                        fine.id ??
-                                                                        "—"
-                                                                    }
-                                                                </p>
-
-                                                            </div>
+                                                            <p
+                                                                className="
+                                                                    whitespace-nowrap
+                                                                    text-sm
+                                                                    font-medium
+                                                                    text-[#2a1d15]
+                                                                "
+                                                            >
+                                                                {
+                                                                    getBookTitle(
+                                                                        fine
+                                                                    )
+                                                                }
+                                                            </p>
 
                                                         </div>
 
                                                     </td>
 
 
-                                                    {/* DAYS */}
+                                                    {/* DUE DATE */}
 
                                                     <td
                                                         className="
+                                                            whitespace-nowrap
                                                             px-5
                                                             py-4
-                                                            text-sm
-                                                            text-[#735e50]
                                                         "
                                                     >
-                                                        {
-                                                            getDaysLate(
-                                                                fine
-                                                            )
-                                                        }{" "}
-                                                        days
-                                                    </td>
-
-
-                                                    {/* AMOUNT */}
-
-                                                    <td className="px-5 py-4">
 
                                                         <div
                                                             className="
                                                                 flex
                                                                 items-center
-                                                                gap-1
+                                                                gap-2
                                                                 text-sm
-                                                                font-semibold
-                                                                text-[#a8652c]
+                                                                text-[#735e50]
                                                             "
                                                         >
 
-                                                            <IndianRupee
+                                                            <CalendarDays
                                                                 className="
-                                                                    h-3.5
-                                                                    w-3.5
+                                                                    h-4
+                                                                    w-4
+                                                                    text-[#9a8778]
                                                                 "
                                                             />
 
                                                             {
-                                                                Number(
-                                                                    getAmount(
+                                                                formatDate(
+                                                                    getDueDate(
                                                                         fine
                                                                     )
-                                                                ).toFixed(2)
+                                                                )
                                                             }
 
                                                         </div>
@@ -904,38 +1189,116 @@ export default function MemberFines() {
                                                     </td>
 
 
-                                                    {/* DATE */}
+                                                    {/* RETURN DATE */}
 
                                                     <td
                                                         className="
+                                                            whitespace-nowrap
                                                             px-5
                                                             py-4
                                                             text-sm
                                                             text-[#735e50]
                                                         "
                                                     >
+
                                                         {
                                                             formatDate(
-                                                                getDate(
+                                                                getReturnDate(
                                                                     fine
                                                                 )
                                                             )
                                                         }
+
+                                                    </td>
+
+
+                                                    {/* OVERDUE */}
+
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
+
+                                                        <span
+                                                            className="
+                                                                inline-flex
+                                                                items-center
+                                                                gap-1.5
+                                                                rounded-full
+                                                                bg-red-50
+                                                                px-2.5
+                                                                py-1
+                                                                text-xs
+                                                                font-medium
+                                                                text-red-700
+                                                            "
+                                                        >
+
+                                                            <Clock
+                                                                className="h-3.5 w-3.5"
+                                                            />
+
+                                                            {
+                                                                overdueDays
+                                                            }{" "}
+                                                            day
+                                                            {overdueDays !==
+                                                            1
+                                                                ? "s"
+                                                                : ""}
+
+                                                        </span>
+
+                                                    </td>
+
+
+                                                    {/* AMOUNT */}
+
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
+
+                                                        <span
+                                                            className="
+                                                                text-sm
+                                                                font-semibold
+                                                                text-[#2a1d15]
+                                                            "
+                                                        >
+                                                            {
+                                                                formatMoney(
+                                                                    amount
+                                                                )
+                                                            }
+                                                        </span>
+
                                                     </td>
 
 
                                                     {/* STATUS */}
 
-                                                    <td className="px-5 py-4">
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
 
-                                                        {status ===
-                                                        "PAID" ? (
+                                                        {paid ? (
 
                                                             <span
                                                                 className="
                                                                     inline-flex
                                                                     items-center
-                                                                    gap-1
+                                                                    gap-1.5
                                                                     rounded-full
                                                                     bg-green-50
                                                                     px-2.5
@@ -947,7 +1310,7 @@ export default function MemberFines() {
                                                             >
 
                                                                 <CheckCircle
-                                                                    className="h-3 w-3"
+                                                                    className="h-3.5 w-3.5"
                                                                 />
 
                                                                 Paid
@@ -959,6 +1322,8 @@ export default function MemberFines() {
                                                             <span
                                                                 className="
                                                                     inline-flex
+                                                                    items-center
+                                                                    gap-1.5
                                                                     rounded-full
                                                                     bg-red-50
                                                                     px-2.5
@@ -968,7 +1333,13 @@ export default function MemberFines() {
                                                                     text-red-700
                                                                 "
                                                             >
-                                                                Unpaid
+
+                                                                <AlertCircle
+                                                                    className="h-3.5 w-3.5"
+                                                                />
+
+                                                                Outstanding
+
                                                             </span>
 
                                                         )}

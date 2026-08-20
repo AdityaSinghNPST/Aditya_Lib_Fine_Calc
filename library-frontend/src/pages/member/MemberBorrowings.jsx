@@ -1,26 +1,37 @@
 import { useEffect, useState } from "react";
 
 import {
-    ArrowLeftRight,
-    RotateCcw,
-    Search,
-    X,
+    ArrowLeft,
+    BookOpen,
+    CalendarDays,
     CheckCircle,
+    AlertCircle,
+    RotateCcw,
+    X,
 } from "lucide-react";
 
+import { Link } from "react-router-dom";
+
 import Navbar from "../../components/layout/Navbar";
+
 import api from "../../services/api";
 
 
+// =========================================================
+// MEMBER BORROWINGS
+// =========================================================
+
 export default function MemberBorrowings() {
+
+    // =====================================================
+    // STATE
+    // =====================================================
 
     const [borrowings, setBorrowings] = useState([]);
 
     const [loading, setLoading] = useState(true);
 
     const [returningId, setReturningId] = useState(null);
-
-    const [search, setSearch] = useState("");
 
     const [error, setError] = useState("");
 
@@ -39,27 +50,54 @@ export default function MemberBorrowings() {
 
             setError("");
 
-            const data =
-                await api.borrowings.getMy();
 
+            /*
+             * The backend should use the authenticated
+             * user's JWT to determine which borrowings
+             * belong to the current member.
+             */
+
+            const data =
+                await api.borrowings.getMyBorrowings();
+
+
+            // =================================================
+            // NORMAL ARRAY RESPONSE
+            // =================================================
 
             if (Array.isArray(data)) {
 
                 setBorrowings(data);
 
-            } else if (
+                return;
+            }
+
+
+            // =================================================
+            // PAGINATED RESPONSE
+            // =================================================
+
+            if (
                 data &&
                 Array.isArray(data.content)
             ) {
 
-                setBorrowings(data.content);
+                setBorrowings(
+                    data.content
+                );
 
-            } else {
-
-                setBorrowings([]);
+                return;
             }
 
+
+            setBorrowings([]);
+
         } catch (err) {
+
+            console.error(
+                "Failed to load borrowings:",
+                err
+            );
 
             setError(
                 err.message ||
@@ -73,6 +111,10 @@ export default function MemberBorrowings() {
     }
 
 
+    // =====================================================
+    // INITIAL LOAD
+    // =====================================================
+
     useEffect(() => {
 
         loadBorrowings();
@@ -81,14 +123,263 @@ export default function MemberBorrowings() {
 
 
     // =====================================================
+    // BOOK TITLE
+    // =====================================================
+
+    function getBookTitle(
+        borrowing
+    ) {
+
+        return (
+            borrowing.bookTitle ||
+
+            borrowing.book?.title ||
+
+            borrowing.title ||
+
+            "Unknown Book"
+        );
+    }
+
+
+    // =====================================================
+    // AUTHOR
+    // =====================================================
+
+    function getAuthor(
+        borrowing
+    ) {
+
+        return (
+            borrowing.author ||
+
+            borrowing.book?.author ||
+
+            "Unknown Author"
+        );
+    }
+
+
+    // =====================================================
+    // BORROW DATE
+    // =====================================================
+
+    function getBorrowDate(
+        borrowing
+    ) {
+
+        return (
+            borrowing.borrowDate ||
+
+            borrowing.borrowedAt ||
+
+            borrowing.issueDate ||
+
+            borrowing.createdAt ||
+
+            null
+        );
+    }
+
+
+    // =====================================================
+    // DUE DATE
+    // =====================================================
+
+    function getDueDate(
+        borrowing
+    ) {
+
+        return (
+            borrowing.dueDate ||
+
+            borrowing.dueAt ||
+
+            borrowing.expectedReturnDate ||
+
+            null
+        );
+    }
+
+
+    // =====================================================
+    // RETURN DATE
+    // =====================================================
+
+    function getReturnDate(
+        borrowing
+    ) {
+
+        return (
+            borrowing.returnDate ||
+
+            borrowing.returnedAt ||
+
+            null
+        );
+    }
+
+
+    // =====================================================
+    // CHECK RETURNED
+    // =====================================================
+
+    function isReturned(
+        borrowing
+    ) {
+
+        if (
+            getReturnDate(
+                borrowing
+            )
+        ) {
+
+            return true;
+        }
+
+
+        if (
+            borrowing.returned === true
+        ) {
+
+            return true;
+        }
+
+
+        if (
+            String(
+                borrowing.status || ""
+            ).toUpperCase() ===
+            "RETURNED"
+        ) {
+
+            return true;
+        }
+
+
+        return false;
+    }
+
+
+    // =====================================================
+    // CHECK OVERDUE
+    // =====================================================
+
+    function isOverdue(
+        borrowing
+    ) {
+
+        if (
+            isReturned(
+                borrowing
+            )
+        ) {
+
+            return false;
+        }
+
+
+        const dueDate =
+            getDueDate(
+                borrowing
+            );
+
+
+        if (!dueDate) {
+
+            return false;
+        }
+
+
+        const due =
+            new Date(
+                dueDate
+            );
+
+
+        if (
+            Number.isNaN(
+                due.getTime()
+            )
+        ) {
+
+            return false;
+        }
+
+
+        return (
+            due.getTime() <
+            Date.now()
+        );
+    }
+
+
+    // =====================================================
+    // FORMAT DATE
+    // =====================================================
+
+    function formatDate(
+        date
+    ) {
+
+        if (!date) {
+
+            return "—";
+        }
+
+
+        const parsedDate =
+            new Date(date);
+
+
+        if (
+            Number.isNaN(
+                parsedDate.getTime()
+            )
+        ) {
+
+            return "—";
+        }
+
+
+        return parsedDate.toLocaleDateString(
+            "en-IN",
+            {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            }
+        );
+    }
+
+
+    // =====================================================
     // RETURN BOOK
     // =====================================================
 
-    async function handleReturn(borrowing) {
+    async function handleReturnBook(
+        borrowing
+    ) {
+
+        if (!borrowing?.id) {
+
+            setError(
+                "Borrowing ID is missing."
+            );
+
+            return;
+        }
+
+
+        const bookTitle =
+            getBookTitle(
+                borrowing
+            );
+
 
         const confirmed =
             window.confirm(
-                `Return "${getBookTitle(borrowing)}"?`
+                `Are you sure you want to return "${bookTitle}"?`
             );
 
 
@@ -109,13 +400,22 @@ export default function MemberBorrowings() {
             setSuccess("");
 
 
+            /*
+             * This uses the same return endpoint used
+             * by the admin page.
+             *
+             * The backend must verify that the current
+             * authenticated user is allowed to return
+             * this borrowing.
+             */
+
             await api.borrowings.returnBook(
                 borrowing.id
             );
 
 
             setSuccess(
-                `"${getBookTitle(borrowing)}" returned successfully.`
+                `"${bookTitle}" was returned successfully.`
             );
 
 
@@ -130,6 +430,11 @@ export default function MemberBorrowings() {
 
         } catch (err) {
 
+            console.error(
+                "Failed to return book:",
+                err
+            );
+
             setError(
                 err.message ||
                 "Unable to return the book."
@@ -143,171 +448,6 @@ export default function MemberBorrowings() {
 
 
     // =====================================================
-    // HELPERS
-    // =====================================================
-
-    function getBookTitle(borrowing) {
-
-        return (
-            borrowing.book?.title ||
-            borrowing.bookTitle ||
-            "Unknown book"
-        );
-    }
-
-
-    function getBookAuthor(borrowing) {
-
-        return (
-            borrowing.book?.author ||
-            borrowing.bookAuthor ||
-            "Unknown author"
-        );
-    }
-
-
-    function getStatus(borrowing) {
-
-        const status =
-            String(
-                borrowing.status ||
-                borrowing.borrowingStatus ||
-                ""
-            ).toUpperCase();
-
-
-        if (
-            status === "RETURNED" ||
-            borrowing.returned === true
-        ) {
-
-            return "RETURNED";
-        }
-
-
-        return "BORROWED";
-    }
-
-
-    function getBorrowDate(borrowing) {
-
-        return (
-            borrowing.borrowedAt ||
-            borrowing.borrowDate ||
-            borrowing.borrowedDate ||
-            borrowing.createdAt ||
-            "—"
-        );
-    }
-
-
-    function getReturnDate(borrowing) {
-
-        return (
-            borrowing.returnedAt ||
-            borrowing.returnDate ||
-            "—"
-        );
-    }
-
-
-    function getDueDate(borrowing) {
-
-        return (
-            borrowing.dueDate ||
-            borrowing.dueAt ||
-            borrowing.expectedReturnDate ||
-            "—"
-        );
-    }
-
-
-    function formatDate(value) {
-
-        if (
-            !value ||
-            value === "—"
-        ) {
-
-            return "—";
-        }
-
-
-        const date =
-            new Date(value);
-
-
-        if (
-            Number.isNaN(
-                date.getTime()
-            )
-        ) {
-
-            return value;
-        }
-
-
-        return date.toLocaleDateString(
-            "en-IN",
-            {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-            }
-        );
-    }
-
-
-    // =====================================================
-    // SEARCH
-    // =====================================================
-
-    const filteredBorrowings =
-        borrowings.filter(
-            (borrowing) => {
-
-                const value =
-                    search
-                        .toLowerCase()
-                        .trim();
-
-
-                if (!value) {
-
-                    return true;
-                }
-
-
-                return (
-
-                    getBookTitle(
-                        borrowing
-                    )
-                        .toLowerCase()
-                        .includes(value)
-
-                    ||
-
-                    getBookAuthor(
-                        borrowing
-                    )
-                        .toLowerCase()
-                        .includes(value)
-
-                    ||
-
-                    String(
-                        borrowing.id || ""
-                    )
-                        .toLowerCase()
-                        .includes(value)
-
-                );
-            }
-        );
-
-
-    // =====================================================
     // RENDER
     // =====================================================
 
@@ -316,23 +456,65 @@ export default function MemberBorrowings() {
         <div
             className="
                 min-h-screen
+                w-full
                 bg-[#faf4ec]
             "
         >
 
+            {/* =================================================
+                NAVBAR
+            ================================================= */}
+
             <Navbar />
 
 
+            {/* =================================================
+                MAIN
+            ================================================= */}
+
             <main
                 className="
-                    mx-auto
-                    max-w-7xl
+                    min-h-[calc(100vh-64px)]
+                    w-full
                     px-4
-                    py-8
+                    py-6
                     sm:px-6
                     lg:px-8
+                    xl:px-10
                 "
             >
+
+                {/* =================================================
+                    BACK
+                ================================================= */}
+
+                <Link
+                    to="/member"
+                    className="
+                        mb-5
+                        inline-flex
+                        items-center
+                        gap-2
+                        rounded-lg
+                        px-3
+                        py-2
+                        text-sm
+                        font-medium
+                        text-[#735e50]
+                        transition
+                        hover:bg-[#f1e3d3]
+                        hover:text-[#2a1d15]
+                    "
+                >
+
+                    <ArrowLeft
+                        className="h-4 w-4"
+                    />
+
+                    Back to Dashboard
+
+                </Link>
+
 
                 {/* =================================================
                     HEADER
@@ -372,54 +554,10 @@ export default function MemberBorrowings() {
                             text-[#735e50]
                         "
                     >
-                        View your borrowed books and return them.
+                        Track the books you have borrowed and their due dates.
                     </p>
 
                 </div>
-
-
-                {/* =================================================
-                    ERROR
-                ================================================= */}
-
-                {error && (
-
-                    <div
-                        className="
-                            mb-5
-                            flex
-                            items-center
-                            justify-between
-                            rounded-lg
-                            border
-                            border-red-200
-                            bg-red-50
-                            px-4
-                            py-3
-                            text-sm
-                            text-red-700
-                        "
-                    >
-
-                        <span>
-                            {error}
-                        </span>
-
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setError("")
-                            }
-                        >
-
-                            <X className="h-4 w-4" />
-
-                        </button>
-
-                    </div>
-
-                )}
 
 
                 {/* =================================================
@@ -449,9 +587,7 @@ export default function MemberBorrowings() {
                             className="h-4 w-4"
                         />
 
-                        <span>
-                            {success}
-                        </span>
+                        {success}
 
                     </div>
 
@@ -459,63 +595,61 @@ export default function MemberBorrowings() {
 
 
                 {/* =================================================
-                    SEARCH
+                    ERROR
                 ================================================= */}
 
-                <div
-                    className="
-                        mb-5
-                        rounded-xl
-                        border
-                        border-[#e5d7c5]
-                        bg-white
-                        p-4
-                        shadow-sm
-                    "
-                >
+                {error && (
 
-                    <div className="relative">
+                    <div
+                        className="
+                            mb-5
+                            flex
+                            items-center
+                            justify-between
+                            rounded-lg
+                            border
+                            border-red-200
+                            bg-red-50
+                            px-4
+                            py-3
+                            text-sm
+                            text-red-700
+                        "
+                    >
 
-                        <Search
+                        <div
                             className="
-                                absolute
-                                left-3
-                                top-1/2
-                                h-4
-                                w-4
-                                -translate-y-1/2
-                                text-[#9a8778]
+                                flex
+                                items-center
+                                gap-2
                             "
-                        />
+                        >
+
+                            <AlertCircle
+                                className="h-4 w-4"
+                            />
+
+                            {error}
+
+                        </div>
 
 
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(event) =>
-                                setSearch(
-                                    event.target.value
-                                )
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setError("")
                             }
-                            placeholder="Search your borrowed books..."
-                            className="
-                                w-full
-                                rounded-lg
-                                border
-                                border-[#ddd0c1]
-                                bg-[#fffdfb]
-                                py-2.5
-                                pl-9
-                                pr-3
-                                text-sm
-                                outline-none
-                                focus:border-[#a8652c]
-                            "
-                        />
+                        >
+
+                            <X
+                                className="h-4 w-4"
+                            />
+
+                        </button>
 
                     </div>
 
-                </div>
+                )}
 
 
                 {/* =================================================
@@ -535,37 +669,53 @@ export default function MemberBorrowings() {
 
                     {loading ? (
 
+                        /* =========================================
+                           LOADING
+                        ========================================= */
+
                         <div
                             className="
                                 flex
                                 min-h-64
                                 items-center
                                 justify-center
-                                text-sm
-                                text-[#735e50]
                             "
                         >
-                            Loading your borrowings...
+
+                            <p
+                                className="
+                                    text-sm
+                                    text-[#735e50]
+                                "
+                            >
+                                Loading your borrowings...
+                            </p>
+
                         </div>
 
-                    ) : filteredBorrowings.length === 0 ? (
+                    ) : borrowings.length === 0 ? (
+
+                        /* =========================================
+                           EMPTY
+                        ========================================= */
 
                         <div
                             className="
                                 flex
-                                min-h-64
+                                min-h-72
                                 flex-col
                                 items-center
                                 justify-center
+                                px-4
                             "
                         >
 
                             <div
                                 className="
-                                    mb-3
+                                    mb-4
                                     flex
-                                    h-12
-                                    w-12
+                                    h-14
+                                    w-14
                                     items-center
                                     justify-center
                                     rounded-full
@@ -574,8 +724,8 @@ export default function MemberBorrowings() {
                                 "
                             >
 
-                                <ArrowLeftRight
-                                    className="h-5 w-5"
+                                <BookOpen
+                                    className="h-6 w-6"
                                 />
 
                             </div>
@@ -583,31 +733,71 @@ export default function MemberBorrowings() {
 
                             <h3
                                 className="
+                                    text-lg
                                     font-medium
                                     text-[#2a1d15]
                                 "
                             >
-                                No borrowings found
+                                No borrowings
                             </h3>
 
 
                             <p
                                 className="
                                     mt-1
+                                    text-center
                                     text-sm
                                     text-[#9a8778]
                                 "
                             >
-                                Browse books to borrow one.
+                                You haven't borrowed any books yet.
                             </p>
+
+
+                            <Link
+                                to="/member/books"
+                                className="
+                                    mt-5
+                                    inline-flex
+                                    items-center
+                                    gap-2
+                                    rounded-lg
+                                    bg-[#a8652c]
+                                    px-4
+                                    py-2.5
+                                    text-sm
+                                    font-medium
+                                    text-white
+                                    transition
+                                    hover:bg-[#8f501e]
+                                "
+                            >
+                                Browse Books
+                            </Link>
 
                         </div>
 
                     ) : (
 
-                        <div className="overflow-x-auto">
+                        /* =========================================
+                           TABLE
+                        ========================================= */
 
-                            <table className="min-w-full">
+                        <div
+                            className="
+                                overflow-x-auto
+                            "
+                        >
+
+                            <table
+                                className="
+                                    min-w-full
+                                "
+                            >
+
+                                {/* =================================
+                                    HEADER
+                                ================================= */}
 
                                 <thead
                                     className="
@@ -621,6 +811,7 @@ export default function MemberBorrowings() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -637,6 +828,7 @@ export default function MemberBorrowings() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -653,6 +845,7 @@ export default function MemberBorrowings() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -669,22 +862,7 @@ export default function MemberBorrowings() {
 
                                         <th
                                             className="
-                                                px-5
-                                                py-3
-                                                text-left
-                                                text-xs
-                                                font-semibold
-                                                uppercase
-                                                tracking-wide
-                                                text-[#735e50]
-                                            "
-                                        >
-                                            Returned
-                                        </th>
-
-
-                                        <th
-                                            className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -701,6 +879,7 @@ export default function MemberBorrowings() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-right
@@ -719,20 +898,25 @@ export default function MemberBorrowings() {
                                 </thead>
 
 
+                                {/* =================================
+                                    BODY
+                                ================================= */}
+
                                 <tbody>
 
-                                    {filteredBorrowings.map(
+                                    {borrowings.map(
                                         (borrowing) => {
 
-                                            const status =
-                                                getStatus(
+                                            const returned =
+                                                isReturned(
                                                     borrowing
                                                 );
 
 
-                                            const returned =
-                                                status ===
-                                                "RETURNED";
+                                            const overdue =
+                                                isOverdue(
+                                                    borrowing
+                                                );
 
 
                                             return (
@@ -749,9 +933,16 @@ export default function MemberBorrowings() {
                                                     "
                                                 >
 
-                                                    {/* BOOK */}
+                                                    {/* =================================
+                                                        BOOK
+                                                    ================================= */}
 
-                                                    <td className="px-5 py-4">
+                                                    <td
+                                                        className="
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
 
                                                         <div
                                                             className="
@@ -764,8 +955,8 @@ export default function MemberBorrowings() {
                                                             <div
                                                                 className="
                                                                     flex
-                                                                    h-9
-                                                                    w-9
+                                                                    h-10
+                                                                    w-10
                                                                     shrink-0
                                                                     items-center
                                                                     justify-center
@@ -775,7 +966,7 @@ export default function MemberBorrowings() {
                                                                 "
                                                             >
 
-                                                                <ArrowLeftRight
+                                                                <BookOpen
                                                                     className="h-4 w-4"
                                                                 />
 
@@ -786,6 +977,7 @@ export default function MemberBorrowings() {
 
                                                                 <p
                                                                     className="
+                                                                        whitespace-nowrap
                                                                         text-sm
                                                                         font-medium
                                                                         text-[#2a1d15]
@@ -802,12 +994,13 @@ export default function MemberBorrowings() {
                                                                 <p
                                                                     className="
                                                                         mt-0.5
+                                                                        whitespace-nowrap
                                                                         text-xs
                                                                         text-[#9a8778]
                                                                     "
                                                                 >
                                                                     {
-                                                                        getBookAuthor(
+                                                                        getAuthor(
                                                                             borrowing
                                                                         )
                                                                     }
@@ -820,75 +1013,106 @@ export default function MemberBorrowings() {
                                                     </td>
 
 
-                                                    {/* BORROWED */}
+                                                    {/* =================================
+                                                        BORROWED DATE
+                                                    ================================= */}
 
                                                     <td
                                                         className="
+                                                            whitespace-nowrap
                                                             px-5
                                                             py-4
-                                                            text-sm
-                                                            text-[#735e50]
                                                         "
                                                     >
-                                                        {
-                                                            formatDate(
-                                                                getBorrowDate(
-                                                                    borrowing
+
+                                                        <div
+                                                            className="
+                                                                flex
+                                                                items-center
+                                                                gap-2
+                                                                text-sm
+                                                                text-[#735e50]
+                                                            "
+                                                        >
+
+                                                            <CalendarDays
+                                                                className="
+                                                                    h-4
+                                                                    w-4
+                                                                    text-[#9a8778]
+                                                                "
+                                                            />
+
+                                                            {
+                                                                formatDate(
+                                                                    getBorrowDate(
+                                                                        borrowing
+                                                                    )
                                                                 )
-                                                            )
-                                                        }
+                                                            }
+
+                                                        </div>
+
                                                     </td>
 
 
-                                                    {/* DUE */}
+                                                    {/* =================================
+                                                        DUE DATE
+                                                    ================================= */}
 
                                                     <td
                                                         className="
+                                                            whitespace-nowrap
                                                             px-5
                                                             py-4
-                                                            text-sm
-                                                            text-[#735e50]
                                                         "
                                                     >
-                                                        {
-                                                            formatDate(
-                                                                getDueDate(
-                                                                    borrowing
+
+                                                        <span
+                                                            className={
+                                                                `
+                                                                text-sm
+                                                                ${
+                                                                    overdue
+                                                                        ? "font-medium text-red-600"
+                                                                        : "text-[#735e50]"
+                                                                }
+                                                                `
+                                                            }
+                                                        >
+
+                                                            {
+                                                                formatDate(
+                                                                    getDueDate(
+                                                                        borrowing
+                                                                    )
                                                                 )
-                                                            )
-                                                        }
+                                                            }
+
+                                                        </span>
+
                                                     </td>
 
 
-                                                    {/* RETURNED */}
+                                                    {/* =================================
+                                                        STATUS
+                                                    ================================= */}
 
                                                     <td
                                                         className="
+                                                            whitespace-nowrap
                                                             px-5
                                                             py-4
-                                                            text-sm
-                                                            text-[#735e50]
                                                         "
                                                     >
-                                                        {
-                                                            formatDate(
-                                                                getReturnDate(
-                                                                    borrowing
-                                                                )
-                                                            )
-                                                        }
-                                                    </td>
-
-
-                                                    {/* STATUS */}
-
-                                                    <td className="px-5 py-4">
 
                                                         {returned ? (
 
                                                             <span
                                                                 className="
                                                                     inline-flex
+                                                                    items-center
+                                                                    gap-1.5
                                                                     rounded-full
                                                                     bg-green-50
                                                                     px-2.5
@@ -898,7 +1122,38 @@ export default function MemberBorrowings() {
                                                                     text-green-700
                                                                 "
                                                             >
+
+                                                                <CheckCircle
+                                                                    className="h-3.5 w-3.5"
+                                                                />
+
                                                                 Returned
+
+                                                            </span>
+
+                                                        ) : overdue ? (
+
+                                                            <span
+                                                                className="
+                                                                    inline-flex
+                                                                    items-center
+                                                                    gap-1.5
+                                                                    rounded-full
+                                                                    bg-red-50
+                                                                    px-2.5
+                                                                    py-1
+                                                                    text-xs
+                                                                    font-medium
+                                                                    text-red-700
+                                                                "
+                                                            >
+
+                                                                <AlertCircle
+                                                                    className="h-3.5 w-3.5"
+                                                                />
+
+                                                                Overdue
+
                                                             </span>
 
                                                         ) : (
@@ -906,16 +1161,20 @@ export default function MemberBorrowings() {
                                                             <span
                                                                 className="
                                                                     inline-flex
+                                                                    items-center
+                                                                    gap-1.5
                                                                     rounded-full
-                                                                    bg-amber-50
+                                                                    bg-blue-50
                                                                     px-2.5
                                                                     py-1
                                                                     text-xs
                                                                     font-medium
-                                                                    text-amber-700
+                                                                    text-blue-700
                                                                 "
                                                             >
+
                                                                 Borrowed
+
                                                             </span>
 
                                                         )}
@@ -923,9 +1182,17 @@ export default function MemberBorrowings() {
                                                     </td>
 
 
-                                                    {/* ACTION */}
+                                                    {/* =================================
+                                                        ACTION
+                                                    ================================= */}
 
-                                                    <td className="px-5 py-4">
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
 
                                                         <div
                                                             className="
@@ -934,12 +1201,12 @@ export default function MemberBorrowings() {
                                                             "
                                                         >
 
-                                                            {!returned && (
+                                                            {!returned ? (
 
                                                                 <button
                                                                     type="button"
                                                                     onClick={() =>
-                                                                        handleReturn(
+                                                                        handleReturnBook(
                                                                             borrowing
                                                                         )
                                                                     }
@@ -952,33 +1219,42 @@ export default function MemberBorrowings() {
                                                                         items-center
                                                                         gap-2
                                                                         rounded-lg
-                                                                        border
-                                                                        border-[#ddd0c1]
-                                                                        bg-white
+                                                                        bg-[#a8652c]
                                                                         px-3
                                                                         py-2
                                                                         text-xs
                                                                         font-medium
-                                                                        text-[#73533b]
-                                                                        hover:bg-[#f5ede3]
+                                                                        text-white
+                                                                        transition
+                                                                        hover:bg-[#8f501e]
                                                                         disabled:cursor-not-allowed
                                                                         disabled:opacity-50
                                                                     "
                                                                 >
 
                                                                     <RotateCcw
-                                                                        className="
-                                                                            h-3.5
-                                                                            w-3.5
-                                                                        "
+                                                                        className="h-3.5 w-3.5"
                                                                     />
 
-                                                                    {returningId ===
-                                                                    borrowing.id
-                                                                        ? "Returning..."
-                                                                        : "Return"}
+                                                                    {
+                                                                        returningId ===
+                                                                        borrowing.id
+                                                                            ? "Returning..."
+                                                                            : "Return Book"
+                                                                    }
 
                                                                 </button>
+
+                                                            ) : (
+
+                                                                <span
+                                                                    className="
+                                                                        text-xs
+                                                                        text-[#9a8778]
+                                                                    "
+                                                                >
+                                                                    Returned
+                                                                </span>
 
                                                             )}
 

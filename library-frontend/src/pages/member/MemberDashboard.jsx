@@ -1,17 +1,16 @@
-import { useEffect, useState } from "react";
-
 import {
     BookOpen,
-    ArrowLeftRight,
+    Clock3,
     IndianRupee,
-    Clock,
+    ArrowRight,
+    LogOut,
 } from "lucide-react";
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import Navbar from "../../components/layout/Navbar";
 
-import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
 
 // =========================================================
@@ -20,218 +19,33 @@ import api from "../../services/api";
 
 export default function MemberDashboard() {
 
-    // =====================================================
-    // STATE
-    // =====================================================
+    const navigate = useNavigate();
 
-    const [borrowings, setBorrowings] =
-        useState([]);
-
-    const [fines, setFines] =
-        useState([]);
-
-    const [loading, setLoading] =
-        useState(true);
-
-    const [error, setError] =
-        useState("");
+    const {
+        user,
+        logout,
+    } = useAuth();
 
 
     // =====================================================
-    // LOAD MEMBER DATA
+    // LOGOUT
     // =====================================================
 
-    async function loadDashboard() {
+    function handleLogout() {
 
-        try {
+        logout();
 
-            setLoading(true);
-
-            setError("");
-
-
-            /*
-             * Load the logged-in member's borrowing records.
-             */
-
-            const borrowingData =
-                await api.borrowings.getMy();
-
-
-            /*
-             * Load the logged-in member's fines.
-             */
-
-            const fineData =
-                await api.fines.getMy();
-
-
-            // ---------------------------------------------
-            // Borrowings
-            // ---------------------------------------------
-
-            if (Array.isArray(borrowingData)) {
-
-                setBorrowings(
-                    borrowingData
-                );
-
-            } else if (
-                borrowingData &&
-                Array.isArray(
-                    borrowingData.content
-                )
-            ) {
-
-                setBorrowings(
-                    borrowingData.content
-                );
-
-            } else {
-
-                setBorrowings([]);
+        navigate(
+            "/login",
+            {
+                replace: true,
             }
-
-
-            // ---------------------------------------------
-            // Fines
-            // ---------------------------------------------
-
-            if (Array.isArray(fineData)) {
-
-                setFines(
-                    fineData
-                );
-
-            } else if (
-                fineData &&
-                Array.isArray(
-                    fineData.content
-                )
-            ) {
-
-                setFines(
-                    fineData.content
-                );
-
-            } else {
-
-                setFines([]);
-            }
-
-        } catch (err) {
-
-            setError(
-                err.message ||
-                "Unable to load dashboard."
-            );
-
-        } finally {
-
-            setLoading(false);
-        }
-    }
-
-
-    useEffect(() => {
-
-        loadDashboard();
-
-    }, []);
-
-
-    // =====================================================
-    // CALCULATE DASHBOARD VALUES
-    // =====================================================
-
-    const activeBorrowings =
-        borrowings.filter(
-            (borrowing) => {
-
-                const status =
-                    String(
-                        borrowing.status ||
-                        borrowing.borrowingStatus ||
-                        ""
-                    ).toUpperCase();
-
-
-                return (
-                    status !== "RETURNED" &&
-                    borrowing.returned !== true
-                );
-            }
-        );
-
-
-    const totalFines =
-        fines.reduce(
-            (total, fine) => {
-
-                const amount =
-                    fine.amount ??
-                    fine.fineAmount ??
-                    fine.totalFine ??
-                    0;
-
-
-                return (
-                    total +
-                    Number(amount)
-                );
-            },
-            0
-        );
-
-
-    // =====================================================
-    // LOADING
-    // =====================================================
-
-    if (loading) {
-
-        return (
-
-            <div
-                className="
-                    min-h-screen
-                    bg-[#faf4ec]
-                "
-            >
-
-                <Navbar />
-
-
-                <main
-                    className="
-                        mx-auto
-                        flex
-                        min-h-[70vh]
-                        max-w-7xl
-                        items-center
-                        justify-center
-                        px-4
-                    "
-                >
-
-                    <p
-                        className="
-                            text-sm
-                            text-[#735e50]
-                        "
-                    >
-                        Loading your dashboard...
-                    </p>
-
-                </main>
-
-            </div>
         );
     }
 
 
     // =====================================================
-    // DASHBOARD
+    // RENDER
     // =====================================================
 
     return (
@@ -239,21 +53,31 @@ export default function MemberDashboard() {
         <div
             className="
                 min-h-screen
+                w-full
                 bg-[#faf4ec]
             "
         >
 
+            {/* =================================================
+                NAVBAR
+            ================================================= */}
+
             <Navbar />
 
 
+            {/* =================================================
+                MAIN CONTENT
+            ================================================= */}
+
             <main
                 className="
-                    mx-auto
-                    max-w-7xl
+                    min-h-[calc(100vh-64px)]
+                    w-full
                     px-4
                     py-8
                     sm:px-6
                     lg:px-8
+                    xl:px-10
                 "
             >
 
@@ -261,387 +85,97 @@ export default function MemberDashboard() {
                     HEADER
                 ================================================= */}
 
-                <div className="mb-8">
-
-                    <p
-                        className="
-                            mb-1
-                            text-xs
-                            font-medium
-                            uppercase
-                            tracking-wider
-                            text-[#a8652c]
-                        "
-                    >
-                        Member Area
-                    </p>
-
-
-                    <h1
-                        className="
-                            text-2xl
-                            font-semibold
-                            text-[#2a1d15]
-                        "
-                    >
-                        My Library
-                    </h1>
-
-
-                    <p
-                        className="
-                            mt-1
-                            text-sm
-                            text-[#735e50]
-                        "
-                    >
-                        View your books, borrowings and fines.
-                    </p>
-
-                </div>
-
-
-                {/* =================================================
-                    ERROR
-                ================================================= */}
-
-                {error && (
-
-                    <div
-                        className="
-                            mb-5
-                            rounded-lg
-                            border
-                            border-red-200
-                            bg-red-50
-                            px-4
-                            py-3
-                            text-sm
-                            text-red-700
-                        "
-                    >
-                        {error}
-                    </div>
-
-                )}
-
-
-                {/* =================================================
-                    STAT CARDS
-                ================================================= */}
-
                 <div
                     className="
-                        grid
+                        mb-8
+                        flex
+                        flex-col
                         gap-4
-                        sm:grid-cols-2
-                        lg:grid-cols-4
+                        sm:flex-row
+                        sm:items-end
+                        sm:justify-between
                     "
                 >
 
-                    {/* AVAILABLE BOOKS */}
+                    <div>
 
-                    <Link
-                        to="/member/books"
-                        className="
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                            p-5
-                            shadow-sm
-                            transition
-                            hover:-translate-y-0.5
-                            hover:shadow-md
-                        "
-                    >
-
-                        <div
+                        <p
                             className="
-                                flex
-                                items-start
-                                justify-between
+                                mb-1
+                                text-xs
+                                font-medium
+                                uppercase
+                                tracking-wider
+                                text-[#a8652c]
                             "
                         >
-
-                            <div>
-
-                                <p
-                                    className="
-                                        text-sm
-                                        font-medium
-                                        text-[#735e50]
-                                    "
-                                >
-                                    Browse Books
-                                </p>
+                            Member Area
+                        </p>
 
 
-                                <p
-                                    className="
-                                        mt-2
-                                        text-lg
-                                        font-semibold
-                                        text-[#2a1d15]
-                                    "
-                                >
-                                    Explore
-                                </p>
-
-                            </div>
-
-
-                            <div
-                                className="
-                                    flex
-                                    h-10
-                                    w-10
-                                    items-center
-                                    justify-center
-                                    rounded-lg
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
-                                "
-                            >
-
-                                <BookOpen
-                                    className="h-5 w-5"
-                                />
-
-                            </div>
-
-                        </div>
-
-                    </Link>
-
-
-                    {/* ACTIVE BORROWINGS */}
-
-                    <Link
-                        to="/member/borrowings"
-                        className="
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                            p-5
-                            shadow-sm
-                            transition
-                            hover:-translate-y-0.5
-                            hover:shadow-md
-                        "
-                    >
-
-                        <div
+                        <h1
                             className="
-                                flex
-                                items-start
-                                justify-between
+                                text-3xl
+                                font-semibold
+                                text-[#2a1d15]
                             "
                         >
-
-                            <div>
-
-                                <p
-                                    className="
-                                        text-sm
-                                        font-medium
-                                        text-[#735e50]
-                                    "
-                                >
-                                    Active Borrowings
-                                </p>
+                            Welcome
+                            {user?.name
+                                ? `, ${user.name}`
+                                : ""}
+                        </h1>
 
 
-                                <p
-                                    className="
-                                        mt-2
-                                        text-3xl
-                                        font-semibold
-                                        text-[#2a1d15]
-                                    "
-                                >
-                                    {
-                                        activeBorrowings.length
-                                    }
-                                </p>
-
-                            </div>
-
-
-                            <div
-                                className="
-                                    flex
-                                    h-10
-                                    w-10
-                                    items-center
-                                    justify-center
-                                    rounded-lg
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
-                                "
-                            >
-
-                                <ArrowLeftRight
-                                    className="h-5 w-5"
-                                />
-
-                            </div>
-
-                        </div>
-
-                    </Link>
-
-
-                    {/* FINES */}
-
-                    <Link
-                        to="/member/fines"
-                        className="
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                            p-5
-                            shadow-sm
-                            transition
-                            hover:-translate-y-0.5
-                            hover:shadow-md
-                        "
-                    >
-
-                        <div
+                        <p
                             className="
-                                flex
-                                items-start
-                                justify-between
+                                mt-2
+                                text-sm
+                                text-[#735e50]
                             "
                         >
-
-                            <div>
-
-                                <p
-                                    className="
-                                        text-sm
-                                        font-medium
-                                        text-[#735e50]
-                                    "
-                                >
-                                    Total Fines
-                                </p>
-
-
-                                <p
-                                    className="
-                                        mt-2
-                                        text-3xl
-                                        font-semibold
-                                        text-[#a8652c]
-                                    "
-                                >
-                                    ₹
-                                    {totalFines.toFixed(2)}
-                                </p>
-
-                            </div>
-
-
-                            <div
-                                className="
-                                    flex
-                                    h-10
-                                    w-10
-                                    items-center
-                                    justify-center
-                                    rounded-lg
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
-                                "
-                            >
-
-                                <IndianRupee
-                                    className="h-5 w-5"
-                                />
-
-                            </div>
-
-                        </div>
-
-                    </Link>
-
-
-                    {/* DUE STATUS */}
-
-                    <div
-                        className="
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                            p-5
-                            shadow-sm
-                        "
-                    >
-
-                        <div
-                            className="
-                                flex
-                                items-start
-                                justify-between
-                            "
-                        >
-
-                            <div>
-
-                                <p
-                                    className="
-                                        text-sm
-                                        font-medium
-                                        text-[#735e50]
-                                    "
-                                >
-                                    Library Status
-                                </p>
-
-
-                                <p
-                                    className="
-                                        mt-2
-                                        text-lg
-                                        font-semibold
-                                        text-[#2a1d15]
-                                    "
-                                >
-                                    {activeBorrowings.length > 0
-                                        ? "Books borrowed"
-                                        : "No active books"}
-                                </p>
-
-                            </div>
-
-
-                            <div
-                                className="
-                                    flex
-                                    h-10
-                                    w-10
-                                    items-center
-                                    justify-center
-                                    rounded-lg
-                                    bg-[#f1e3d3]
-                                    text-[#a8652c]
-                                "
-                            >
-
-                                <Clock
-                                    className="h-5 w-5"
-                                />
-
-                            </div>
-
-                        </div>
+                            Manage your books, borrowings and fines.
+                        </p>
 
                     </div>
+
+
+                    {/* LOGOUT */}
+
+                    <button
+                        type="button"
+                        onClick={
+                            handleLogout
+                        }
+                        className="
+                            inline-flex
+                            items-center
+                            justify-center
+                            gap-2
+                            self-start
+                            rounded-lg
+                            border
+                            border-[#ddd0c1]
+                            bg-white
+                            px-4
+                            py-2.5
+                            text-sm
+                            font-medium
+                            text-[#735e50]
+                            transition
+                            hover:bg-[#f1e3d3]
+                            hover:text-[#2a1d15]
+                            sm:self-auto
+                        "
+                    >
+
+                        <LogOut
+                            className="h-4 w-4"
+                        />
+
+                        Logout
+
+                    </button>
 
                 </div>
 
@@ -650,191 +184,371 @@ export default function MemberDashboard() {
                     QUICK ACTIONS
                 ================================================= */}
 
-                <section className="mt-8">
+                <div
+                    className="
+                        grid
+                        gap-5
+                        sm:grid-cols-2
+                        lg:grid-cols-3
+                    "
+                >
 
-                    <div className="mb-4">
+                    {/* =================================================
+                        BROWSE BOOKS
+                    ================================================= */}
+
+                    <Link
+                        to="/member/books"
+                        className="
+                            group
+                            rounded-2xl
+                            border
+                            border-[#e5d7c5]
+                            bg-white
+                            p-6
+                            shadow-sm
+                            transition
+                            hover:-translate-y-0.5
+                            hover:shadow-md
+                        "
+                    >
+
+                        <div
+                            className="
+                                flex
+                                items-start
+                                justify-between
+                            "
+                        >
+
+                            <div
+                                className="
+                                    flex
+                                    h-12
+                                    w-12
+                                    items-center
+                                    justify-center
+                                    rounded-xl
+                                    bg-[#f1e3d3]
+                                    text-[#a8652c]
+                                "
+                            >
+
+                                <BookOpen
+                                    className="h-6 w-6"
+                                />
+
+                            </div>
+
+
+                            <ArrowRight
+                                className="
+                                    h-5
+                                    w-5
+                                    text-[#9a8778]
+                                    transition
+                                    group-hover:translate-x-1
+                                    group-hover:text-[#a8652c]
+                                "
+                            />
+
+                        </div>
+
 
                         <h2
                             className="
+                                mt-6
                                 text-lg
                                 font-semibold
                                 text-[#2a1d15]
                             "
                         >
-                            Quick actions
+                            Browse Books
                         </h2>
 
 
                         <p
                             className="
-                                mt-1
+                                mt-2
                                 text-sm
+                                leading-6
                                 text-[#735e50]
                             "
                         >
-                            Manage your library activity.
+                            View available books and borrow
+                            a book from the library.
                         </p>
 
-                    </div>
+                    </Link>
 
+
+                    {/* =================================================
+                        BORROWINGS
+                    ================================================= */}
+
+                    <Link
+                        to="/member/borrowings"
+                        className="
+                            group
+                            rounded-2xl
+                            border
+                            border-[#e5d7c5]
+                            bg-white
+                            p-6
+                            shadow-sm
+                            transition
+                            hover:-translate-y-0.5
+                            hover:shadow-md
+                        "
+                    >
+
+                        <div
+                            className="
+                                flex
+                                items-start
+                                justify-between
+                            "
+                        >
+
+                            <div
+                                className="
+                                    flex
+                                    h-12
+                                    w-12
+                                    items-center
+                                    justify-center
+                                    rounded-xl
+                                    bg-[#f1e3d3]
+                                    text-[#a8652c]
+                                "
+                            >
+
+                                <Clock3
+                                    className="h-6 w-6"
+                                />
+
+                            </div>
+
+
+                            <ArrowRight
+                                className="
+                                    h-5
+                                    w-5
+                                    text-[#9a8778]
+                                    transition
+                                    group-hover:translate-x-1
+                                    group-hover:text-[#a8652c]
+                                "
+                            />
+
+                        </div>
+
+
+                        <h2
+                            className="
+                                mt-6
+                                text-lg
+                                font-semibold
+                                text-[#2a1d15]
+                            "
+                        >
+                            My Borrowings
+                        </h2>
+
+
+                        <p
+                            className="
+                                mt-2
+                                text-sm
+                                leading-6
+                                text-[#735e50]
+                            "
+                        >
+                            Check the books you currently
+                            have borrowed and their due dates.
+                        </p>
+
+                    </Link>
+
+
+                    {/* =================================================
+                        FINES
+                    ================================================= */}
+
+                    <Link
+                        to="/member/fines"
+                        className="
+                            group
+                            rounded-2xl
+                            border
+                            border-[#e5d7c5]
+                            bg-white
+                            p-6
+                            shadow-sm
+                            transition
+                            hover:-translate-y-0.5
+                            hover:shadow-md
+                        "
+                    >
+
+                        <div
+                            className="
+                                flex
+                                items-start
+                                justify-between
+                            "
+                        >
+
+                            <div
+                                className="
+                                    flex
+                                    h-12
+                                    w-12
+                                    items-center
+                                    justify-center
+                                    rounded-xl
+                                    bg-[#f1e3d3]
+                                    text-[#a8652c]
+                                "
+                            >
+
+                                <IndianRupee
+                                    className="h-6 w-6"
+                                />
+
+                            </div>
+
+
+                            <ArrowRight
+                                className="
+                                    h-5
+                                    w-5
+                                    text-[#9a8778]
+                                    transition
+                                    group-hover:translate-x-1
+                                    group-hover:text-[#a8652c]
+                                "
+                            />
+
+                        </div>
+
+
+                        <h2
+                            className="
+                                mt-6
+                                text-lg
+                                font-semibold
+                                text-[#2a1d15]
+                            "
+                        >
+                            My Fines
+                        </h2>
+
+
+                        <p
+                            className="
+                                mt-2
+                                text-sm
+                                leading-6
+                                text-[#735e50]
+                            "
+                        >
+                            View any automatically generated
+                            fines for overdue books.
+                        </p>
+
+                    </Link>
+
+                </div>
+
+
+                {/* =================================================
+                    INFORMATION SECTION
+                ================================================= */}
+
+                <div
+                    className="
+                        mt-8
+                        rounded-2xl
+                        border
+                        border-[#e5d7c5]
+                        bg-white
+                        p-6
+                        shadow-sm
+                    "
+                >
 
                     <div
                         className="
-                            grid
-                            gap-4
-                            sm:grid-cols-3
+                            flex
+                            flex-col
+                            gap-5
+                            md:flex-row
+                            md:items-center
+                            md:justify-between
                         "
                     >
+
+                        <div>
+
+                            <h2
+                                className="
+                                    text-lg
+                                    font-semibold
+                                    text-[#2a1d15]
+                                "
+                            >
+                                Library Information
+                            </h2>
+
+
+                            <p
+                                className="
+                                    mt-2
+                                    max-w-2xl
+                                    text-sm
+                                    leading-6
+                                    text-[#735e50]
+                                "
+                            >
+                                Borrow books, keep track of your
+                                due dates, and return them on time
+                                to avoid late fines.
+                            </p>
+
+                        </div>
+
 
                         <Link
                             to="/member/books"
                             className="
-                                rounded-xl
-                                border
-                                border-[#e5d7c5]
-                                bg-white
-                                p-5
-                                shadow-sm
+                                inline-flex
+                                items-center
+                                justify-center
+                                gap-2
+                                rounded-lg
+                                bg-[#a8652c]
+                                px-4
+                                py-2.5
+                                text-sm
+                                font-medium
+                                text-white
                                 transition
-                                hover:-translate-y-0.5
-                                hover:bg-[#fffaf5]
-                                hover:shadow-md
+                                hover:bg-[#8f501e]
                             "
                         >
 
-                            <BookOpen
-                                className="
-                                    mb-3
-                                    h-5
-                                    w-5
-                                    text-[#a8652c]
-                                "
+                            Browse Library
+
+                            <ArrowRight
+                                className="h-4 w-4"
                             />
-
-
-                            <h3
-                                className="
-                                    font-medium
-                                    text-[#2a1d15]
-                                "
-                            >
-                                Browse Books
-                            </h3>
-
-
-                            <p
-                                className="
-                                    mt-1
-                                    text-sm
-                                    text-[#735e50]
-                                "
-                            >
-                                Find available books and borrow one.
-                            </p>
-
-                        </Link>
-
-
-                        <Link
-                            to="/member/borrowings"
-                            className="
-                                rounded-xl
-                                border
-                                border-[#e5d7c5]
-                                bg-white
-                                p-5
-                                shadow-sm
-                                transition
-                                hover:-translate-y-0.5
-                                hover:bg-[#fffaf5]
-                                hover:shadow-md
-                            "
-                        >
-
-                            <ArrowLeftRight
-                                className="
-                                    mb-3
-                                    h-5
-                                    w-5
-                                    text-[#a8652c]
-                                "
-                            />
-
-
-                            <h3
-                                className="
-                                    font-medium
-                                    text-[#2a1d15]
-                                "
-                            >
-                                My Borrowings
-                            </h3>
-
-
-                            <p
-                                className="
-                                    mt-1
-                                    text-sm
-                                    text-[#735e50]
-                                "
-                            >
-                                See your borrowed books and return them.
-                            </p>
-
-                        </Link>
-
-
-                        <Link
-                            to="/member/fines"
-                            className="
-                                rounded-xl
-                                border
-                                border-[#e5d7c5]
-                                bg-white
-                                p-5
-                                shadow-sm
-                                transition
-                                hover:-translate-y-0.5
-                                hover:bg-[#fffaf5]
-                                hover:shadow-md
-                            "
-                        >
-
-                            <IndianRupee
-                                className="
-                                    mb-3
-                                    h-5
-                                    w-5
-                                    text-[#a8652c]
-                                "
-                            />
-
-
-                            <h3
-                                className="
-                                    font-medium
-                                    text-[#2a1d15]
-                                "
-                            >
-                                My Fines
-                            </h3>
-
-
-                            <p
-                                className="
-                                    mt-1
-                                    text-sm
-                                    text-[#735e50]
-                                "
-                            >
-                                Check fines generated for late returns.
-                            </p>
 
                         </Link>
 
                     </div>
 
-                </section>
+                </div>
 
             </main>
 

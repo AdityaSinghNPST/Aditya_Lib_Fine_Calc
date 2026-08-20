@@ -13,116 +13,12 @@ import AdminUsers from "./pages/admin/AdminUser";
 import AdminBooks from "./pages/admin/AdminBooks";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminBorrowings from "./pages/admin/AdminBorrowings";
+import AdminFines from "./pages/admin/AdminFines";
+import MemberDashboard from "./pages/member/MemberDashboard";
+import MemberBooks from "./pages/member/MemberBooks";
+import MemberBorrowings from "./pages/member/MemberBorrowings";
+import MemberFines from "./pages/member/MemberFines";
 
-// =========================================================
-// ADMIN PAGES
-// =========================================================
-
-// Temporary pages.
-// We will replace these with the real pages/components
-// from your existing frontend design one by one.
-
-
-
-
-
-
-
-
-function AdminFines() {
-
-    return (
-        <div className="min-h-screen bg-[#faf4ec] p-8">
-
-            <h1 className="text-2xl font-bold text-[#2a1d15]">
-                Fines
-            </h1>
-
-            <p className="mt-2 text-[#735e50]">
-                View automatically generated fines.
-            </p>
-
-        </div>
-    );
-}
-
-
-
-
-// =========================================================
-// MEMBER PAGES
-// =========================================================
-
-function MemberDashboard() {
-
-    return (
-        <div className="min-h-screen bg-[#faf4ec] p-8">
-
-            <h1 className="text-2xl font-bold text-[#2a1d15]">
-                My Dashboard
-            </h1>
-
-            <p className="mt-2 text-[#735e50]">
-                Welcome to your library dashboard.
-            </p>
-
-        </div>
-    );
-}
-
-
-function MemberBooks() {
-
-    return (
-        <div className="min-h-screen bg-[#faf4ec] p-8">
-
-            <h1 className="text-2xl font-bold text-[#2a1d15]">
-                Browse Books
-            </h1>
-
-            <p className="mt-2 text-[#735e50]">
-                Browse available books.
-            </p>
-
-        </div>
-    );
-}
-
-
-function MemberBorrowings() {
-
-    return (
-        <div className="min-h-screen bg-[#faf4ec] p-8">
-
-            <h1 className="text-2xl font-bold text-[#2a1d15]">
-                My Borrowings
-            </h1>
-
-            <p className="mt-2 text-[#735e50]">
-                View your borrowed books.
-            </p>
-
-        </div>
-    );
-}
-
-
-function MemberFines() {
-
-    return (
-        <div className="min-h-screen bg-[#faf4ec] p-8">
-
-            <h1 className="text-2xl font-bold text-[#2a1d15]">
-                My Fines
-            </h1>
-
-            <p className="mt-2 text-[#735e50]">
-                View your automatically generated fines.
-            </p>
-
-        </div>
-    );
-}
 
 
 // =========================================================

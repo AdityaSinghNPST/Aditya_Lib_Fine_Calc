@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 
 import {
-    ArrowLeftRight,
+    ArrowLeft,
+    BookOpen,
+    CheckCircle,
+    AlertCircle,
     RotateCcw,
-    Search,
     X,
 } from "lucide-react";
+
+import { Link } from "react-router-dom";
 
 import Navbar from "../../components/layout/Navbar";
 
@@ -13,7 +17,7 @@ import api from "../../services/api";
 
 
 // =========================================================
-// ADMIN BORROWINGS
+// ADMIN BORROWINGS PAGE
 // =========================================================
 
 export default function AdminBorrowings() {
@@ -22,20 +26,15 @@ export default function AdminBorrowings() {
     // STATE
     // =====================================================
 
-    const [borrowings, setBorrowings] =
-        useState([]);
+    const [borrowings, setBorrowings] = useState([]);
 
-    const [loading, setLoading] =
-        useState(true);
+    const [loading, setLoading] = useState(true);
 
-    const [error, setError] =
-        useState("");
+    const [returningId, setReturningId] = useState(null);
 
-    const [search, setSearch] =
-        useState("");
+    const [error, setError] = useState("");
 
-    const [returningId, setReturningId] =
-        useState(null);
+    const [success, setSuccess] = useState("");
 
 
     // =====================================================
@@ -50,32 +49,52 @@ export default function AdminBorrowings() {
 
             setError("");
 
+
             const data =
                 await api.borrowings.getAll();
 
 
-            /*
-             * The backend may return either
-             * a direct array or a paginated object.
-             */
+            // =================================================
+            // NORMAL ARRAY RESPONSE
+            // =================================================
 
             if (Array.isArray(data)) {
 
                 setBorrowings(data);
 
-            } else if (
+                return;
+            }
+
+
+            // =================================================
+            // PAGINATED RESPONSE
+            // =================================================
+
+            if (
                 data &&
                 Array.isArray(data.content)
             ) {
 
-                setBorrowings(data.content);
+                setBorrowings(
+                    data.content
+                );
 
-            } else {
-
-                setBorrowings([]);
+                return;
             }
 
+
+            // =================================================
+            // FALLBACK
+            // =================================================
+
+            setBorrowings([]);
+
         } catch (err) {
+
+            console.error(
+                "Failed to load borrowings:",
+                err
+            );
 
             setError(
                 err.message ||
@@ -89,6 +108,10 @@ export default function AdminBorrowings() {
     }
 
 
+    // =====================================================
+    // INITIAL LOAD
+    // =====================================================
+
     useEffect(() => {
 
         loadBorrowings();
@@ -100,15 +123,38 @@ export default function AdminBorrowings() {
     // RETURN BOOK
     // =====================================================
 
-    async function handleReturn(borrowing) {
+    async function handleReturnBook(
+        borrowing
+    ) {
+
+        const borrowingId =
+            borrowing.id;
+
+
+        if (!borrowingId) {
+
+            setError(
+                "Borrowing ID is missing."
+            );
+
+            return;
+        }
+
+
+        const bookTitle =
+            getBookTitle(
+                borrowing
+            );
+
 
         const confirmed =
             window.confirm(
-                "Are you sure you want to mark this book as returned?"
+                `Are you sure you want to return "${bookTitle}"?`
             );
 
 
         if (!confirmed) {
+
             return;
         }
 
@@ -116,28 +162,44 @@ export default function AdminBorrowings() {
         try {
 
             setReturningId(
-                borrowing.id
+                borrowingId
             );
 
             setError("");
 
+            setSuccess("");
+
 
             await api.borrowings.returnBook(
-                borrowing.id
+                borrowingId
             );
 
 
-            /*
-             * Reload because the backend may have:
-             *
-             * - changed borrowing status
-             * - changed book availability
-             * - calculated a fine
-             */
+            setSuccess(
+                "Book returned successfully."
+            );
+
+
+            // Refresh borrowing records.
 
             await loadBorrowings();
 
+
+            // Remove success message after a few seconds.
+
+            setTimeout(() => {
+
+                setSuccess("");
+
+            }, 4000);
+
         } catch (err) {
+
+            console.error(
+                "Failed to return book:",
+                err
+            );
+
 
             setError(
                 err.message ||
@@ -152,178 +214,274 @@ export default function AdminBorrowings() {
 
 
     // =====================================================
-    // SEARCH
+    // GET BOOK TITLE
     // =====================================================
 
-    const filteredBorrowings =
-        borrowings.filter((borrowing) => {
+    function getBookTitle(
+        borrowing
+    ) {
 
-            const value =
-                search
-                    .toLowerCase()
-                    .trim();
+        return (
+            borrowing.bookTitle ||
 
+            borrowing.book?.title ||
 
-            if (!value) {
-                return true;
-            }
+            borrowing.book?.name ||
 
+            borrowing.title ||
 
-            /*
-             * We support different possible backend
-             * property names so the UI remains flexible.
-             */
-
-            const bookTitle =
-                borrowing.book?.title ||
-                borrowing.bookTitle ||
-                "";
-
-            const userName =
-                borrowing.user?.name ||
-                borrowing.userName ||
-                "";
-
-            const email =
-                borrowing.user?.email ||
-                borrowing.userEmail ||
-                "";
-
-
-            return (
-
-                String(bookTitle)
-                    .toLowerCase()
-                    .includes(value)
-
-                ||
-
-                String(userName)
-                    .toLowerCase()
-                    .includes(value)
-
-                ||
-
-                String(email)
-                    .toLowerCase()
-                    .includes(value)
-
-                ||
-
-                String(borrowing.id || "")
-                    .toLowerCase()
-                    .includes(value)
-
-            );
-        });
+            "Unknown Book"
+        );
+    }
 
 
     // =====================================================
-    // STATUS
+    // GET AUTHOR
     // =====================================================
 
-    function getStatus(borrowing) {
+    function getAuthor(
+        borrowing
+    ) {
 
-        const status =
-            String(
-                borrowing.status ||
-                borrowing.borrowingStatus ||
-                ""
-            ).toUpperCase();
+        return (
+            borrowing.author ||
 
+            borrowing.book?.author ||
+
+            "Unknown"
+        );
+    }
+
+
+    // =====================================================
+    // GET USER NAME
+    // =====================================================
+
+    function getUserName(
+        borrowing
+    ) {
+
+        return (
+            borrowing.userName ||
+
+            borrowing.user?.name ||
+
+            borrowing.memberName ||
+
+            borrowing.member?.name ||
+
+            borrowing.user?.email ||
+
+            borrowing.member?.email ||
+
+            "Unknown User"
+        );
+    }
+
+
+    // =====================================================
+    // GET USER EMAIL
+    // =====================================================
+
+    function getUserEmail(
+        borrowing
+    ) {
+
+        return (
+            borrowing.email ||
+
+            borrowing.user?.email ||
+
+            borrowing.member?.email ||
+
+            "—"
+        );
+    }
+
+
+    // =====================================================
+    // GET DUE DATE
+    // =====================================================
+
+    function getDueDate(
+        borrowing
+    ) {
+
+        return (
+            borrowing.dueDate ||
+
+            borrowing.dueAt ||
+
+            borrowing.expectedReturnDate ||
+
+            null
+        );
+    }
+
+
+    // =====================================================
+    // GET BORROW DATE
+    // =====================================================
+
+    function getBorrowDate(
+        borrowing
+    ) {
+
+        return (
+            borrowing.borrowDate ||
+
+            borrowing.borrowedAt ||
+
+            borrowing.createdAt ||
+
+            borrowing.issueDate ||
+
+            null
+        );
+    }
+
+
+    // =====================================================
+    // GET RETURN DATE
+    // =====================================================
+
+    function getReturnDate(
+        borrowing
+    ) {
+
+        return (
+            borrowing.returnDate ||
+
+            borrowing.returnedAt ||
+
+            null
+        );
+    }
+
+
+    // =====================================================
+    // CHECK WHETHER RETURNED
+    // =====================================================
+
+    function isReturned(
+        borrowing
+    ) {
 
         if (
-            status === "RETURNED" ||
-            borrowing.returned === true
+            getReturnDate(
+                borrowing
+            )
         ) {
 
-            return "RETURNED";
+            return true;
         }
 
 
-        return "BORROWED";
+        if (
+            borrowing.returned === true
+        ) {
+
+            return true;
+        }
+
+
+        if (
+            borrowing.status
+                ?.toString()
+                .toUpperCase() ===
+            "RETURNED"
+        ) {
+
+            return true;
+        }
+
+
+        return false;
     }
 
 
     // =====================================================
-    // DISPLAY HELPERS
+    // CHECK OVERDUE
     // =====================================================
 
-    function getBookTitle(borrowing) {
+    function isOverdue(
+        borrowing
+    ) {
+
+        if (
+            isReturned(
+                borrowing
+            )
+        ) {
+
+            return false;
+        }
+
+
+        const dueDate =
+            getDueDate(
+                borrowing
+            );
+
+
+        if (!dueDate) {
+
+            return false;
+        }
+
+
+        const due =
+            new Date(
+                dueDate
+            );
+
+
+        if (
+            Number.isNaN(
+                due.getTime()
+            )
+        ) {
+
+            return false;
+        }
+
 
         return (
-            borrowing.book?.title ||
-            borrowing.bookTitle ||
-            "Unknown book"
+            due.getTime() <
+            Date.now()
         );
     }
 
 
-    function getUserName(borrowing) {
+    // =====================================================
+    // FORMAT DATE
+    // =====================================================
 
-        return (
-            borrowing.user?.name ||
-            borrowing.userName ||
-            "Unknown member"
-        );
-    }
+    function formatDate(
+        date
+    ) {
 
-
-    function getUserEmail(borrowing) {
-
-        return (
-            borrowing.user?.email ||
-            borrowing.userEmail ||
-            "—"
-        );
-    }
-
-
-    function getBorrowDate(borrowing) {
-
-        return (
-            borrowing.borrowedAt ||
-            borrowing.borrowDate ||
-            borrowing.borrowedDate ||
-            borrowing.createdAt ||
-            "—"
-        );
-    }
-
-
-    function getReturnDate(borrowing) {
-
-        return (
-            borrowing.returnedAt ||
-            borrowing.returnDate ||
-            "—"
-        );
-    }
-
-
-    function formatDate(value) {
-
-        if (!value || value === "—") {
+        if (!date) {
 
             return "—";
         }
 
 
-        const date =
-            new Date(value);
+        const parsedDate =
+            new Date(date);
 
 
         if (
             Number.isNaN(
-                date.getTime()
+                parsedDate.getTime()
             )
         ) {
 
-            return value;
+            return "—";
         }
 
 
-        return date.toLocaleDateString(
+        return parsedDate.toLocaleDateString(
             "en-IN",
             {
                 day: "2-digit",
@@ -331,6 +489,26 @@ export default function AdminBorrowings() {
                 year: "numeric",
             }
         );
+    }
+
+
+    // =====================================================
+    // GET INITIAL
+    // =====================================================
+
+    function getInitial(
+        name
+    ) {
+
+        if (!name) {
+
+            return "?";
+        }
+
+
+        return name
+            .charAt(0)
+            .toUpperCase();
     }
 
 
@@ -343,71 +521,203 @@ export default function AdminBorrowings() {
         <div
             className="
                 min-h-screen
+                w-full
                 bg-[#faf4ec]
             "
         >
 
+            {/* =================================================
+                NAVBAR
+            ================================================= */}
+
             <Navbar />
 
 
+            {/* =================================================
+                MAIN CONTENT
+            ================================================= */}
+
             <main
                 className="
-                    mx-auto
-                    max-w-7xl
+                    min-h-[calc(100vh-64px)]
+                    w-full
                     px-4
-                    py-8
+                    py-6
                     sm:px-6
                     lg:px-8
+                    xl:px-10
                 "
             >
 
                 {/* =================================================
-                    HEADER
+                    BACK BUTTON
                 ================================================= */}
 
-                <div className="mb-6">
+                <Link
+                    to="/admin"
+                    className="
+                        mb-5
+                        inline-flex
+                        items-center
+                        gap-2
+                        rounded-lg
+                        px-3
+                        py-2
+                        text-sm
+                        font-medium
+                        text-[#735e50]
+                        transition
+                        hover:bg-[#f1e3d3]
+                        hover:text-[#2a1d15]
+                    "
+                >
 
-                    <p
-                        className="
-                            mb-1
-                            text-xs
-                            font-medium
-                            uppercase
-                            tracking-wider
-                            text-[#a8652c]
-                        "
-                    >
-                        Administration
-                    </p>
+                    <ArrowLeft
+                        className="h-4 w-4"
+                    />
+
+                    Back to Dashboard
+
+                </Link>
 
 
-                    <h1
-                        className="
-                            text-2xl
-                            font-semibold
-                            text-[#2a1d15]
-                        "
-                    >
-                        Borrowings
-                    </h1>
+                {/* =================================================
+                    PAGE HEADER
+                ================================================= */}
+
+                <div
+                    className="
+                        mb-6
+                        flex
+                        flex-col
+                        gap-3
+                        sm:flex-row
+                        sm:items-end
+                        sm:justify-between
+                    "
+                >
+
+                    <div>
+
+                        <p
+                            className="
+                                mb-1
+                                text-xs
+                                font-medium
+                                uppercase
+                                tracking-wider
+                                text-[#a8652c]
+                            "
+                        >
+                            Administration
+                        </p>
 
 
-                    <p
-                        className="
-                            mt-1
-                            text-sm
-                            text-[#735e50]
-                        "
-                    >
-                        View active borrowing records and
-                        manage book returns.
-                    </p>
+                        <h1
+                            className="
+                                text-2xl
+                                font-semibold
+                                text-[#2a1d15]
+                            "
+                        >
+                            Borrowings
+                        </h1>
+
+
+                        <p
+                            className="
+                                mt-1
+                                text-sm
+                                text-[#735e50]
+                            "
+                        >
+                            View all borrowed books and manage returns.
+                        </p>
+
+                    </div>
+
+
+                    {/* TOTAL */}
+
+                    {!loading && (
+
+                        <div
+                            className="
+                                rounded-lg
+                                border
+                                border-[#e5d7c5]
+                                bg-white
+                                px-4
+                                py-3
+                            "
+                        >
+
+                            <p
+                                className="
+                                    text-xs
+                                    text-[#9a8778]
+                                "
+                            >
+                                Total Records
+                            </p>
+
+
+                            <p
+                                className="
+                                    mt-0.5
+                                    text-lg
+                                    font-semibold
+                                    text-[#2a1d15]
+                                "
+                            >
+                                {borrowings.length}
+                            </p>
+
+                        </div>
+
+                    )}
 
                 </div>
 
 
                 {/* =================================================
-                    ERROR
+                    SUCCESS MESSAGE
+                ================================================= */}
+
+                {success && (
+
+                    <div
+                        className="
+                            mb-5
+                            flex
+                            items-center
+                            gap-2
+                            rounded-lg
+                            border
+                            border-green-200
+                            bg-green-50
+                            px-4
+                            py-3
+                            text-sm
+                            text-green-700
+                        "
+                    >
+
+                        <CheckCircle
+                            className="h-4 w-4"
+                        />
+
+                        <span>
+                            {success}
+                        </span>
+
+                    </div>
+
+                )}
+
+
+                {/* =================================================
+                    ERROR MESSAGE
                 ================================================= */}
 
                 {error && (
@@ -429,9 +739,23 @@ export default function AdminBorrowings() {
                         "
                     >
 
-                        <span>
-                            {error}
-                        </span>
+                        <div
+                            className="
+                                flex
+                                items-center
+                                gap-2
+                            "
+                        >
+
+                            <AlertCircle
+                                className="h-4 w-4"
+                            />
+
+                            <span>
+                                {error}
+                            </span>
+
+                        </div>
 
 
                         <button
@@ -441,7 +765,9 @@ export default function AdminBorrowings() {
                             }
                         >
 
-                            <X className="h-4 w-4" />
+                            <X
+                                className="h-4 w-4"
+                            />
 
                         </button>
 
@@ -451,67 +777,7 @@ export default function AdminBorrowings() {
 
 
                 {/* =================================================
-                    SEARCH
-                ================================================= */}
-
-                <div
-                    className="
-                        mb-5
-                        rounded-xl
-                        border
-                        border-[#e5d7c5]
-                        bg-white
-                        p-4
-                        shadow-sm
-                    "
-                >
-
-                    <div className="relative">
-
-                        <Search
-                            className="
-                                absolute
-                                left-3
-                                top-1/2
-                                h-4
-                                w-4
-                                -translate-y-1/2
-                                text-[#9a8778]
-                            "
-                        />
-
-
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={(event) =>
-                                setSearch(
-                                    event.target.value
-                                )
-                            }
-                            placeholder="Search by member, email or book..."
-                            className="
-                                w-full
-                                rounded-lg
-                                border
-                                border-[#ddd0c1]
-                                bg-[#fffdfb]
-                                py-2.5
-                                pl-9
-                                pr-3
-                                text-sm
-                                outline-none
-                                focus:border-[#a8652c]
-                            "
-                        />
-
-                    </div>
-
-                </div>
-
-
-                {/* =================================================
-                    TABLE
+                    BORROWINGS TABLE
                 ================================================= */}
 
                 <div
@@ -527,20 +793,35 @@ export default function AdminBorrowings() {
 
                     {loading ? (
 
+                        /* =========================================
+                           LOADING
+                        ========================================= */
+
                         <div
                             className="
                                 flex
                                 min-h-64
                                 items-center
                                 justify-center
-                                text-sm
-                                text-[#735e50]
                             "
                         >
-                            Loading borrowing records...
+
+                            <p
+                                className="
+                                    text-sm
+                                    text-[#735e50]
+                                "
+                            >
+                                Loading borrowing records...
+                            </p>
+
                         </div>
 
-                    ) : filteredBorrowings.length === 0 ? (
+                    ) : borrowings.length === 0 ? (
+
+                        /* =========================================
+                           EMPTY
+                        ========================================= */
 
                         <div
                             className="
@@ -549,6 +830,7 @@ export default function AdminBorrowings() {
                                 flex-col
                                 items-center
                                 justify-center
+                                px-4
                             "
                         >
 
@@ -566,7 +848,7 @@ export default function AdminBorrowings() {
                                 "
                             >
 
-                                <ArrowLeftRight
+                                <BookOpen
                                     className="h-5 w-5"
                                 />
 
@@ -579,27 +861,44 @@ export default function AdminBorrowings() {
                                     text-[#2a1d15]
                                 "
                             >
-                                No borrowing records found
+                                No borrowing records
                             </h3>
 
 
                             <p
                                 className="
                                     mt-1
+                                    text-center
                                     text-sm
                                     text-[#9a8778]
                                 "
                             >
-                                Borrowing activity will appear here.
+                                There are currently no borrowing records.
                             </p>
 
                         </div>
 
                     ) : (
 
-                        <div className="overflow-x-auto">
+                        /* =========================================
+                           TABLE
+                        ========================================= */
 
-                            <table className="min-w-full">
+                        <div
+                            className="
+                                overflow-x-auto
+                            "
+                        >
+
+                            <table
+                                className="
+                                    min-w-full
+                                "
+                            >
+
+                                {/* =================================
+                                    HEADER
+                                ================================= */}
 
                                 <thead
                                     className="
@@ -613,22 +912,7 @@ export default function AdminBorrowings() {
 
                                         <th
                                             className="
-                                                px-5
-                                                py-3
-                                                text-left
-                                                text-xs
-                                                font-semibold
-                                                uppercase
-                                                tracking-wide
-                                                text-[#735e50]
-                                            "
-                                        >
-                                            Member
-                                        </th>
-
-
-                                        <th
-                                            className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -645,6 +929,24 @@ export default function AdminBorrowings() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            Member
+                                        </th>
+
+
+                                        <th
+                                            className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -661,6 +963,7 @@ export default function AdminBorrowings() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -671,12 +974,13 @@ export default function AdminBorrowings() {
                                                 text-[#735e50]
                                             "
                                         >
-                                            Returned
+                                            Due Date
                                         </th>
 
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -693,6 +997,7 @@ export default function AdminBorrowings() {
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-right
@@ -711,20 +1016,43 @@ export default function AdminBorrowings() {
                                 </thead>
 
 
+                                {/* =================================
+                                    BODY
+                                ================================= */}
+
                                 <tbody>
 
-                                    {filteredBorrowings.map(
+                                    {borrowings.map(
                                         (borrowing) => {
 
-                                            const status =
-                                                getStatus(
+                                            const returned =
+                                                isReturned(
                                                     borrowing
                                                 );
 
 
-                                            const returned =
-                                                status ===
-                                                "RETURNED";
+                                            const overdue =
+                                                isOverdue(
+                                                    borrowing
+                                                );
+
+
+                                            const bookTitle =
+                                                getBookTitle(
+                                                    borrowing
+                                                );
+
+
+                                            const memberName =
+                                                getUserName(
+                                                    borrowing
+                                                );
+
+
+                                            const memberEmail =
+                                                getUserEmail(
+                                                    borrowing
+                                                );
 
 
                                             return (
@@ -741,63 +1069,31 @@ export default function AdminBorrowings() {
                                                     "
                                                 >
 
-                                                    {/* MEMBER */}
+                                                    {/* =================================
+                                                        BOOK
+                                                    ================================= */}
 
-                                                    <td className="px-5 py-4">
-
-                                                        <div>
-
-                                                            <p
-                                                                className="
-                                                                    text-sm
-                                                                    font-medium
-                                                                    text-[#2a1d15]
-                                                                "
-                                                            >
-                                                                {
-                                                                    getUserName(
-                                                                        borrowing
-                                                                    )
-                                                                }
-                                                            </p>
-
-
-                                                            <p
-                                                                className="
-                                                                    mt-0.5
-                                                                    text-xs
-                                                                    text-[#9a8778]
-                                                                "
-                                                            >
-                                                                {
-                                                                    getUserEmail(
-                                                                        borrowing
-                                                                    )
-                                                                }
-                                                            </p>
-
-                                                        </div>
-
-                                                    </td>
-
-
-                                                    {/* BOOK */}
-
-                                                    <td className="px-5 py-4">
+                                                    <td
+                                                        className="
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
 
                                                         <div
                                                             className="
                                                                 flex
                                                                 items-center
-                                                                gap-2
+                                                                gap-3
                                                             "
                                                         >
 
                                                             <div
                                                                 className="
                                                                     flex
-                                                                    h-8
-                                                                    w-8
+                                                                    h-9
+                                                                    w-9
+                                                                    shrink-0
                                                                     items-center
                                                                     justify-center
                                                                     rounded-lg
@@ -806,8 +1102,11 @@ export default function AdminBorrowings() {
                                                                 "
                                                             >
 
-                                                                <ArrowLeftRight
-                                                                    className="h-4 w-4"
+                                                                <BookOpen
+                                                                    className="
+                                                                        h-4
+                                                                        w-4
+                                                                    "
                                                                 />
 
                                                             </div>
@@ -817,27 +1116,30 @@ export default function AdminBorrowings() {
 
                                                                 <p
                                                                     className="
+                                                                        whitespace-nowrap
                                                                         text-sm
                                                                         font-medium
                                                                         text-[#2a1d15]
                                                                     "
                                                                 >
                                                                     {
-                                                                        getBookTitle(
-                                                                            borrowing
-                                                                        )
+                                                                        bookTitle
                                                                     }
                                                                 </p>
 
 
                                                                 <p
                                                                     className="
+                                                                        mt-0.5
+                                                                        whitespace-nowrap
                                                                         text-xs
                                                                         text-[#9a8778]
                                                                     "
                                                                 >
-                                                                    ID: {
-                                                                        borrowing.id
+                                                                    {
+                                                                        getAuthor(
+                                                                            borrowing
+                                                                        )
                                                                     }
                                                                 </p>
 
@@ -848,16 +1150,99 @@ export default function AdminBorrowings() {
                                                     </td>
 
 
-                                                    {/* BORROW DATE */}
+                                                    {/* =================================
+                                                        MEMBER
+                                                    ================================= */}
 
                                                     <td
                                                         className="
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
+
+                                                        <div
+                                                            className="
+                                                                flex
+                                                                items-center
+                                                                gap-3
+                                                            "
+                                                        >
+
+                                                            <div
+                                                                className="
+                                                                    flex
+                                                                    h-8
+                                                                    w-8
+                                                                    shrink-0
+                                                                    items-center
+                                                                    justify-center
+                                                                    rounded-full
+                                                                    bg-[#ead7c5]
+                                                                    text-xs
+                                                                    font-semibold
+                                                                    text-[#8f501e]
+                                                                "
+                                                            >
+
+                                                                {
+                                                                    getInitial(
+                                                                        memberName
+                                                                    )
+                                                                }
+
+                                                            </div>
+
+
+                                                            <div>
+
+                                                                <p
+                                                                    className="
+                                                                        whitespace-nowrap
+                                                                        text-sm
+                                                                        font-medium
+                                                                        text-[#2a1d15]
+                                                                    "
+                                                                >
+                                                                    {
+                                                                        memberName
+                                                                    }
+                                                                </p>
+
+
+                                                                <p
+                                                                    className="
+                                                                        whitespace-nowrap
+                                                                        text-xs
+                                                                        text-[#9a8778]
+                                                                    "
+                                                                >
+                                                                    {
+                                                                        memberEmail
+                                                                    }
+                                                                </p>
+
+                                                            </div>
+
+                                                        </div>
+
+                                                    </td>
+
+
+                                                    {/* =================================
+                                                        BORROWED DATE
+                                                    ================================= */}
+
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
                                                             px-5
                                                             py-4
                                                             text-sm
                                                             text-[#735e50]
                                                         "
                                                     >
+
                                                         {
                                                             formatDate(
                                                                 getBorrowDate(
@@ -865,32 +1250,59 @@ export default function AdminBorrowings() {
                                                                 )
                                                             )
                                                         }
+
                                                     </td>
 
 
-                                                    {/* RETURN DATE */}
+                                                    {/* =================================
+                                                        DUE DATE
+                                                    ================================= */}
 
                                                     <td
                                                         className="
+                                                            whitespace-nowrap
                                                             px-5
                                                             py-4
-                                                            text-sm
-                                                            text-[#735e50]
                                                         "
                                                     >
-                                                        {
-                                                            formatDate(
-                                                                getReturnDate(
-                                                                    borrowing
+
+                                                        <span
+                                                            className={
+                                                                `
+                                                                text-sm
+                                                                ${
+                                                                    overdue
+                                                                        ? "font-medium text-red-600"
+                                                                        : "text-[#735e50]"
+                                                                }
+                                                                `
+                                                            }
+                                                        >
+
+                                                            {
+                                                                formatDate(
+                                                                    getDueDate(
+                                                                        borrowing
+                                                                    )
                                                                 )
-                                                            )
-                                                        }
+                                                            }
+
+                                                        </span>
+
                                                     </td>
 
 
-                                                    {/* STATUS */}
+                                                    {/* =================================
+                                                        STATUS
+                                                    ================================= */}
 
-                                                    <td className="px-5 py-4">
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
 
                                                         {returned ? (
 
@@ -909,18 +1321,35 @@ export default function AdminBorrowings() {
                                                                 Returned
                                                             </span>
 
+                                                        ) : overdue ? (
+
+                                                            <span
+                                                                className="
+                                                                    inline-flex
+                                                                    rounded-full
+                                                                    bg-red-50
+                                                                    px-2.5
+                                                                    py-1
+                                                                    text-xs
+                                                                    font-medium
+                                                                    text-red-700
+                                                                "
+                                                            >
+                                                                Overdue
+                                                            </span>
+
                                                         ) : (
 
                                                             <span
                                                                 className="
                                                                     inline-flex
                                                                     rounded-full
-                                                                    bg-amber-50
+                                                                    bg-blue-50
                                                                     px-2.5
                                                                     py-1
                                                                     text-xs
                                                                     font-medium
-                                                                    text-amber-700
+                                                                    text-blue-700
                                                                 "
                                                             >
                                                                 Borrowed
@@ -931,9 +1360,17 @@ export default function AdminBorrowings() {
                                                     </td>
 
 
-                                                    {/* ACTION */}
+                                                    {/* =================================
+                                                        ACTION
+                                                    ================================= */}
 
-                                                    <td className="px-5 py-4">
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
 
                                                         <div
                                                             className="
@@ -942,12 +1379,12 @@ export default function AdminBorrowings() {
                                                             "
                                                         >
 
-                                                            {!returned && (
+                                                            {!returned ? (
 
                                                                 <button
                                                                     type="button"
                                                                     onClick={() =>
-                                                                        handleReturn(
+                                                                        handleReturnBook(
                                                                             borrowing
                                                                         )
                                                                     }
@@ -960,15 +1397,14 @@ export default function AdminBorrowings() {
                                                                         items-center
                                                                         gap-2
                                                                         rounded-lg
-                                                                        border
-                                                                        border-[#ddd0c1]
-                                                                        bg-white
+                                                                        bg-[#a8652c]
                                                                         px-3
                                                                         py-2
                                                                         text-xs
                                                                         font-medium
-                                                                        text-[#73533b]
-                                                                        hover:bg-[#f5ede3]
+                                                                        text-white
+                                                                        transition
+                                                                        hover:bg-[#8f501e]
                                                                         disabled:cursor-not-allowed
                                                                         disabled:opacity-50
                                                                     "
@@ -981,12 +1417,25 @@ export default function AdminBorrowings() {
                                                                         "
                                                                     />
 
-                                                                    {returningId ===
-                                                                    borrowing.id
-                                                                        ? "Returning..."
-                                                                        : "Return"}
+                                                                    {
+                                                                        returningId ===
+                                                                        borrowing.id
+                                                                            ? "Returning..."
+                                                                            : "Return Book"
+                                                                    }
 
                                                                 </button>
+
+                                                            ) : (
+
+                                                                <span
+                                                                    className="
+                                                                        text-xs
+                                                                        text-[#9a8778]
+                                                                    "
+                                                                >
+                                                                    Returned
+                                                                </span>
 
                                                             )}
 

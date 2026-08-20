@@ -1,12 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
+    ArrowLeft,
     IndianRupee,
     Search,
-    X,
     AlertCircle,
     CheckCircle,
+    X,
+    Clock,
+    BookOpen,
+    Users,
 } from "lucide-react";
+
+import { Link } from "react-router-dom";
 
 import Navbar from "../../components/layout/Navbar";
 
@@ -14,7 +20,7 @@ import api from "../../services/api";
 
 
 // =========================================================
-// ADMIN FINES
+// ADMIN FINES PAGE
 // =========================================================
 
 export default function AdminFines() {
@@ -23,17 +29,17 @@ export default function AdminFines() {
     // STATE
     // =====================================================
 
-    const [fines, setFines] =
-        useState([]);
+    const [fines, setFines] = useState([]);
 
-    const [loading, setLoading] =
-        useState(true);
+    const [loading, setLoading] = useState(true);
 
-    const [error, setError] =
-        useState("");
+    const [error, setError] = useState("");
 
-    const [search, setSearch] =
-        useState("");
+    const [success, setSuccess] = useState("");
+
+    const [search, setSearch] = useState("");
+
+    const [filter, setFilter] = useState("ALL");
 
 
     // =====================================================
@@ -52,30 +58,47 @@ export default function AdminFines() {
                 await api.fines.getAll();
 
 
-            /*
-             * Support both:
-             *
-             * 1. Direct array
-             * 2. Spring paginated response
-             */
+            // =================================================
+            // NORMAL ARRAY RESPONSE
+            // =================================================
 
             if (Array.isArray(data)) {
 
                 setFines(data);
 
-            } else if (
+                return;
+            }
+
+
+            // =================================================
+            // PAGINATED RESPONSE
+            // =================================================
+
+            if (
                 data &&
                 Array.isArray(data.content)
             ) {
 
-                setFines(data.content);
+                setFines(
+                    data.content
+                );
 
-            } else {
-
-                setFines([]);
+                return;
             }
 
+
+            // =================================================
+            // FALLBACK
+            // =================================================
+
+            setFines([]);
+
         } catch (err) {
+
+            console.error(
+                "Failed to load fines:",
+                err
+            );
 
             setError(
                 err.message ||
@@ -89,6 +112,10 @@ export default function AdminFines() {
     }
 
 
+    // =====================================================
+    // LOAD ON PAGE OPEN
+    // =====================================================
+
     useEffect(() => {
 
         loadFines();
@@ -97,110 +124,297 @@ export default function AdminFines() {
 
 
     // =====================================================
-    // HELPER FUNCTIONS
+    // GET BOOK TITLE
     // =====================================================
-
-    function getUserName(fine) {
-
-        return (
-            fine.user?.name ||
-            fine.userName ||
-            fine.memberName ||
-            "Unknown member"
-        );
-    }
-
-
-    function getUserEmail(fine) {
-
-        return (
-            fine.user?.email ||
-            fine.userEmail ||
-            "—"
-        );
-    }
-
 
     function getBookTitle(fine) {
 
         return (
-            fine.book?.title ||
             fine.bookTitle ||
-            "Unknown book"
+
+            fine.book?.title ||
+
+            fine.title ||
+
+            "Unknown Book"
         );
     }
 
 
-    function getAmount(fine) {
+    // =====================================================
+    // GET MEMBER NAME
+    // =====================================================
+
+    function getMemberName(fine) {
 
         return (
-            fine.amount ??
-            fine.fineAmount ??
-            fine.totalFine ??
-            0
+            fine.memberName ||
+
+            fine.member?.name ||
+
+            fine.userName ||
+
+            fine.user?.name ||
+
+            "Unknown Member"
         );
     }
 
 
-    function getDaysLate(fine) {
+    // =====================================================
+    // GET MEMBER ID
+    // =====================================================
+
+    function getMemberId(fine) {
 
         return (
-            fine.daysLate ??
-            fine.overdueDays ??
-            fine.lateDays ??
-            0
-        );
-    }
+            fine.memberId ||
 
+            fine.member?.memberId ||
 
-    function getStatus(fine) {
+            fine.member?.id ||
 
-        return String(
-            fine.status ||
-            (
-                fine.paid
-                    ? "PAID"
-                    : "UNPAID"
-            )
-        ).toUpperCase();
-    }
+            fine.userId ||
 
+            fine.user?.id ||
 
-    function getDate(fine) {
-
-        return (
-            fine.createdAt ||
-            fine.calculatedAt ||
-            fine.date ||
-            fine.fineDate ||
             "—"
         );
     }
 
 
-    function formatDate(value) {
+    // =====================================================
+    // GET MEMBER EMAIL
+    // =====================================================
 
-        if (!value || value === "—") {
+    function getMemberEmail(fine) {
+
+        return (
+            fine.member?.email ||
+
+            fine.user?.email ||
+
+            fine.email ||
+
+            ""
+        );
+    }
+
+
+    // =====================================================
+    // GET DUE DATE
+    // =====================================================
+
+    function getDueDate(fine) {
+
+        return (
+            fine.dueDate ||
+
+            fine.dueAt ||
+
+            null
+        );
+    }
+
+
+    // =====================================================
+    // GET RETURN DATE
+    // =====================================================
+
+    function getReturnDate(fine) {
+
+        return (
+            fine.returnDate ||
+
+            fine.returnedAt ||
+
+            null
+        );
+    }
+
+
+    // =====================================================
+    // GET AMOUNT
+    // =====================================================
+
+    function getAmount(fine) {
+
+        const amount =
+            fine.amount ??
+            fine.fineAmount ??
+            fine.totalAmount ??
+            0;
+
+
+        const numericAmount =
+            Number(amount);
+
+
+        return Number.isFinite(
+            numericAmount
+        )
+            ? numericAmount
+            : 0;
+    }
+
+
+    // =====================================================
+    // GET OVERDUE DAYS
+    // =====================================================
+
+    function getOverdueDays(fine) {
+
+        // Use backend value if available.
+
+        if (
+            fine.overdueDays !==
+            undefined &&
+            fine.overdueDays !==
+            null
+        ) {
+
+            return Number(
+                fine.overdueDays
+            );
+        }
+
+
+        if (
+            fine.daysOverdue !==
+            undefined &&
+            fine.daysOverdue !==
+            null
+        ) {
+
+            return Number(
+                fine.daysOverdue
+            );
+        }
+
+
+        // Otherwise calculate only for display.
+
+        const dueDate =
+            getDueDate(fine);
+
+
+        const returnDate =
+            getReturnDate(fine);
+
+
+        if (!dueDate) {
+
+            return 0;
+        }
+
+
+        const due =
+            new Date(
+                dueDate
+            );
+
+
+        if (
+            Number.isNaN(
+                due.getTime()
+            )
+        ) {
+
+            return 0;
+        }
+
+
+        const endDate =
+            returnDate
+                ? new Date(returnDate)
+                : new Date();
+
+
+        if (
+            Number.isNaN(
+                endDate.getTime()
+            )
+        ) {
+
+            return 0;
+        }
+
+
+        const difference =
+            endDate.getTime() -
+            due.getTime();
+
+
+        const days =
+            Math.ceil(
+                difference /
+                (1000 * 60 * 60 * 24)
+            );
+
+
+        return Math.max(
+            days,
+            0
+        );
+    }
+
+
+    // =====================================================
+    // CHECK WHETHER FINE EXISTS
+    // =====================================================
+
+    function isPaid(fine) {
+
+        return (
+            fine.paid === true ||
+
+            fine.isPaid === true ||
+
+            String(
+                fine.status || ""
+            ).toUpperCase() ===
+                "PAID"
+        );
+    }
+
+
+    // =====================================================
+    // CHECK ACTIVE / UNPAID
+    // =====================================================
+
+    function isOutstanding(fine) {
+
+        return !isPaid(fine);
+    }
+
+
+    // =====================================================
+    // FORMAT DATE
+    // =====================================================
+
+    function formatDate(date) {
+
+        if (!date) {
 
             return "—";
         }
 
 
-        const date =
-            new Date(value);
+        const parsedDate =
+            new Date(date);
 
 
         if (
             Number.isNaN(
-                date.getTime()
+                parsedDate.getTime()
             )
         ) {
 
-            return value;
+            return "—";
         }
 
 
-        return date.toLocaleDateString(
+        return parsedDate.toLocaleDateString(
             "en-IN",
             {
                 day: "2-digit",
@@ -212,89 +426,218 @@ export default function AdminFines() {
 
 
     // =====================================================
-    // SEARCH
+    // FORMAT MONEY
+    // =====================================================
+
+    function formatMoney(amount) {
+
+        return new Intl.NumberFormat(
+            "en-IN",
+            {
+                style: "currency",
+                currency: "INR",
+                maximumFractionDigits: 2,
+            }
+        ).format(amount);
+    }
+
+
+    // =====================================================
+    // GET INITIAL
+    // =====================================================
+
+    function getInitial(name) {
+
+        if (!name) {
+
+            return "?";
+        }
+
+
+        return name
+            .charAt(0)
+            .toUpperCase();
+    }
+
+
+    // =====================================================
+    // FILTER FINES
     // =====================================================
 
     const filteredFines =
-        fines.filter((fine) => {
+        useMemo(() => {
 
-            const value =
+            const searchValue =
                 search
-                    .toLowerCase()
-                    .trim();
+                    .trim()
+                    .toLowerCase();
 
 
-            if (!value) {
+            return fines.filter(
+                (fine) => {
 
-                return true;
-            }
+                    // -----------------------------------------
+                    // SEARCH
+                    // -----------------------------------------
 
-
-            return (
-
-                getUserName(fine)
-                    .toLowerCase()
-                    .includes(value)
-
-                ||
-
-                getUserEmail(fine)
-                    .toLowerCase()
-                    .includes(value)
-
-                ||
-
-                getBookTitle(fine)
-                    .toLowerCase()
-                    .includes(value)
-
-                ||
-
-                String(fine.id || "")
-                    .toLowerCase()
-                    .includes(value)
-
-            );
-        });
+                    const bookTitle =
+                        getBookTitle(
+                            fine
+                        ).toLowerCase();
 
 
-    // =====================================================
-    // TOTAL FINE
-    // =====================================================
-
-    const totalFine =
-        filteredFines.reduce(
-            (total, fine) =>
-                total +
-                Number(getAmount(fine)),
-            0
-        );
+                    const memberName =
+                        getMemberName(
+                            fine
+                        ).toLowerCase();
 
 
-    // =====================================================
-    // UNPAID FINE
-    // =====================================================
+                    const memberId =
+                        String(
+                            getMemberId(
+                                fine
+                            )
+                        ).toLowerCase();
 
-    const unpaidFine =
-        filteredFines.reduce(
-            (total, fine) => {
 
-                if (
-                    getStatus(fine) ===
-                    "PAID"
-                ) {
+                    const matchesSearch =
+                        !searchValue ||
 
-                    return total;
+                        bookTitle.includes(
+                            searchValue
+                        ) ||
+
+                        memberName.includes(
+                            searchValue
+                        ) ||
+
+                        memberId.includes(
+                            searchValue
+                        );
+
+
+                    if (!matchesSearch) {
+
+                        return false;
+                    }
+
+
+                    // -----------------------------------------
+                    // STATUS FILTER
+                    // -----------------------------------------
+
+                    if (
+                        filter ===
+                        "OUTSTANDING"
+                    ) {
+
+                        return isOutstanding(
+                            fine
+                        );
+                    }
+
+
+                    if (
+                        filter ===
+                        "PAID"
+                    ) {
+
+                        return isPaid(
+                            fine
+                        );
+                    }
+
+
+                    return true;
                 }
+            );
+
+        }, [
+            fines,
+            search,
+            filter,
+        ]);
 
 
-                return (
-                    total +
-                    Number(getAmount(fine))
-                );
-            },
-            0
-        );
+    // =====================================================
+    // TOTAL FINE AMOUNT
+    // =====================================================
+
+    const totalFineAmount =
+        useMemo(() => {
+
+            return fines.reduce(
+                (
+                    total,
+                    fine
+                ) => {
+
+                    return (
+                        total +
+                        getAmount(
+                            fine
+                        )
+                    );
+
+                },
+                0
+            );
+
+        }, [fines]);
+
+
+    // =====================================================
+    // OUTSTANDING AMOUNT
+    // =====================================================
+
+    const outstandingAmount =
+        useMemo(() => {
+
+            return fines.reduce(
+                (
+                    total,
+                    fine
+                ) => {
+
+                    if (
+                        !isOutstanding(
+                            fine
+                        )
+                    ) {
+
+                        return total;
+                    }
+
+
+                    return (
+                        total +
+                        getAmount(
+                            fine
+                        )
+                    );
+
+                },
+                0
+            );
+
+        }, [fines]);
+
+
+    // =====================================================
+    // OUTSTANDING COUNT
+    // =====================================================
+
+    const outstandingCount =
+        useMemo(() => {
+
+            return fines.filter(
+                (fine) =>
+                    isOutstanding(
+                        fine
+                    )
+            ).length;
+
+        }, [fines]);
 
 
     // =====================================================
@@ -306,67 +649,156 @@ export default function AdminFines() {
         <div
             className="
                 min-h-screen
+                w-full
                 bg-[#faf4ec]
             "
         >
 
+            {/* =================================================
+                NAVBAR
+            ================================================= */}
+
             <Navbar />
 
 
+            {/* =================================================
+                MAIN CONTENT
+            ================================================= */}
+
             <main
                 className="
-                    mx-auto
-                    max-w-7xl
+                    min-h-[calc(100vh-64px)]
+                    w-full
                     px-4
-                    py-8
+                    py-6
                     sm:px-6
                     lg:px-8
+                    xl:px-10
                 "
             >
+
+                {/* =================================================
+                    BACK BUTTON
+                ================================================= */}
+
+                <Link
+                    to="/admin"
+                    className="
+                        mb-5
+                        inline-flex
+                        items-center
+                        gap-2
+                        rounded-lg
+                        px-3
+                        py-2
+                        text-sm
+                        font-medium
+                        text-[#735e50]
+                        transition
+                        hover:bg-[#f1e3d3]
+                        hover:text-[#2a1d15]
+                    "
+                >
+
+                    <ArrowLeft
+                        className="h-4 w-4"
+                    />
+
+                    Back to Dashboard
+
+                </Link>
+
 
                 {/* =================================================
                     HEADER
                 ================================================= */}
 
-                <div className="mb-6">
+                <div
+                    className="
+                        mb-6
+                        flex
+                        flex-col
+                        gap-4
+                        sm:flex-row
+                        sm:items-end
+                        sm:justify-between
+                    "
+                >
 
-                    <p
-                        className="
-                            mb-1
-                            text-xs
-                            font-medium
-                            uppercase
-                            tracking-wider
-                            text-[#a8652c]
-                        "
-                    >
-                        Administration
-                    </p>
+                    <div>
+
+                        <p
+                            className="
+                                mb-1
+                                text-xs
+                                font-medium
+                                uppercase
+                                tracking-wider
+                                text-[#a8652c]
+                            "
+                        >
+                            Administration
+                        </p>
 
 
-                    <h1
-                        className="
-                            text-2xl
-                            font-semibold
-                            text-[#2a1d15]
-                        "
-                    >
-                        Fines
-                    </h1>
+                        <h1
+                            className="
+                                text-2xl
+                                font-semibold
+                                text-[#2a1d15]
+                            "
+                        >
+                            Fines
+                        </h1>
 
 
-                    <p
-                        className="
-                            mt-1
-                            text-sm
-                            text-[#735e50]
-                        "
-                    >
-                        View fines automatically generated by
-                        the library borrowing system.
-                    </p>
+                        <p
+                            className="
+                                mt-1
+                                text-sm
+                                text-[#735e50]
+                            "
+                        >
+                            View automatically calculated library fines.
+                        </p>
+
+                    </div>
 
                 </div>
+
+
+                {/* =================================================
+                    SUCCESS
+                ================================================= */}
+
+                {success && (
+
+                    <div
+                        className="
+                            mb-5
+                            flex
+                            items-center
+                            gap-2
+                            rounded-lg
+                            border
+                            border-green-200
+                            bg-green-50
+                            px-4
+                            py-3
+                            text-sm
+                            text-green-700
+                        "
+                    >
+
+                        <CheckCircle
+                            className="h-4 w-4"
+                        />
+
+                        {success}
+
+                    </div>
+
+                )}
 
 
                 {/* =================================================
@@ -416,9 +848,16 @@ export default function AdminFines() {
                             onClick={() =>
                                 setError("")
                             }
+                            className="
+                                rounded
+                                p-1
+                                hover:bg-red-100
+                            "
                         >
 
-                            <X className="h-4 w-4" />
+                            <X
+                                className="h-4 w-4"
+                            />
 
                         </button>
 
@@ -428,144 +867,253 @@ export default function AdminFines() {
 
 
                 {/* =================================================
-                    SUMMARY
+                    SUMMARY CARDS
                 ================================================= */}
 
-                <div
-                    className="
-                        mb-5
-                        grid
-                        gap-4
-                        sm:grid-cols-3
-                    "
-                >
-
-                    {/* TOTAL RECORDS */}
+                {!loading && (
 
                     <div
                         className="
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                            p-5
-                            shadow-sm
+                            mb-6
+                            grid
+                            gap-4
+                            sm:grid-cols-2
+                            lg:grid-cols-3
                         "
                     >
 
-                        <p
+                        {/* TOTAL FINES */}
+
+                        <div
                             className="
-                                text-xs
-                                font-medium
-                                uppercase
-                                tracking-wide
-                                text-[#9a8778]
+                                rounded-xl
+                                border
+                                border-[#e5d7c5]
+                                bg-white
+                                p-5
+                                shadow-sm
                             "
                         >
-                            Fine Records
-                        </p>
+
+                            <div
+                                className="
+                                    flex
+                                    items-start
+                                    justify-between
+                                "
+                            >
+
+                                <div>
+
+                                    <p
+                                        className="
+                                            text-sm
+                                            font-medium
+                                            text-[#735e50]
+                                        "
+                                    >
+                                        Total Fines
+                                    </p>
 
 
-                        <p
+                                    <p
+                                        className="
+                                            mt-2
+                                            text-2xl
+                                            font-semibold
+                                            text-[#2a1d15]
+                                        "
+                                    >
+                                        {
+                                            formatMoney(
+                                                totalFineAmount
+                                            )
+                                        }
+                                    </p>
+
+                                </div>
+
+
+                                <div
+                                    className="
+                                        flex
+                                        h-10
+                                        w-10
+                                        items-center
+                                        justify-center
+                                        rounded-lg
+                                        bg-[#f1e3d3]
+                                        text-[#a8652c]
+                                    "
+                                >
+
+                                    <IndianRupee
+                                        className="h-5 w-5"
+                                    />
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* OUTSTANDING */}
+
+                        <div
                             className="
-                                mt-2
-                                text-2xl
-                                font-semibold
-                                text-[#2a1d15]
+                                rounded-xl
+                                border
+                                border-[#e5d7c5]
+                                bg-white
+                                p-5
+                                shadow-sm
                             "
                         >
-                            {filteredFines.length}
-                        </p>
+
+                            <div
+                                className="
+                                    flex
+                                    items-start
+                                    justify-between
+                                "
+                            >
+
+                                <div>
+
+                                    <p
+                                        className="
+                                            text-sm
+                                            font-medium
+                                            text-[#735e50]
+                                        "
+                                    >
+                                        Outstanding
+                                    </p>
+
+
+                                    <p
+                                        className="
+                                            mt-2
+                                            text-2xl
+                                            font-semibold
+                                            text-[#2a1d15]
+                                        "
+                                    >
+                                        {
+                                            formatMoney(
+                                                outstandingAmount
+                                            )
+                                        }
+                                    </p>
+
+                                </div>
+
+
+                                <div
+                                    className="
+                                        flex
+                                        h-10
+                                        w-10
+                                        items-center
+                                        justify-center
+                                        rounded-lg
+                                        bg-red-50
+                                        text-red-600
+                                    "
+                                >
+
+                                    <Clock
+                                        className="h-5 w-5"
+                                    />
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* RECORDS */}
+
+                        <div
+                            className="
+                                rounded-xl
+                                border
+                                border-[#e5d7c5]
+                                bg-white
+                                p-5
+                                shadow-sm
+                            "
+                        >
+
+                            <div
+                                className="
+                                    flex
+                                    items-start
+                                    justify-between
+                                "
+                            >
+
+                                <div>
+
+                                    <p
+                                        className="
+                                            text-sm
+                                            font-medium
+                                            text-[#735e50]
+                                        "
+                                    >
+                                        Outstanding Records
+                                    </p>
+
+
+                                    <p
+                                        className="
+                                            mt-2
+                                            text-2xl
+                                            font-semibold
+                                            text-[#2a1d15]
+                                        "
+                                    >
+                                        {
+                                            outstandingCount
+                                        }
+                                    </p>
+
+                                </div>
+
+
+                                <div
+                                    className="
+                                        flex
+                                        h-10
+                                        w-10
+                                        items-center
+                                        justify-center
+                                        rounded-lg
+                                        bg-[#f1e3d3]
+                                        text-[#a8652c]
+                                    "
+                                >
+
+                                    <AlertCircle
+                                        className="h-5 w-5"
+                                    />
+
+                                </div>
+
+                            </div>
+
+                        </div>
 
                     </div>
 
-
-                    {/* TOTAL */}
-
-                    <div
-                        className="
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                            p-5
-                            shadow-sm
-                        "
-                    >
-
-                        <p
-                            className="
-                                text-xs
-                                font-medium
-                                uppercase
-                                tracking-wide
-                                text-[#9a8778]
-                            "
-                        >
-                            Total Fines
-                        </p>
-
-
-                        <p
-                            className="
-                                mt-2
-                                text-2xl
-                                font-semibold
-                                text-[#2a1d15]
-                            "
-                        >
-                            ₹
-                            {totalFine.toFixed(2)}
-                        </p>
-
-                    </div>
-
-
-                    {/* UNPAID */}
-
-                    <div
-                        className="
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                            p-5
-                            shadow-sm
-                        "
-                    >
-
-                        <p
-                            className="
-                                text-xs
-                                font-medium
-                                uppercase
-                                tracking-wide
-                                text-[#9a8778]
-                            "
-                        >
-                            Outstanding
-                        </p>
-
-
-                        <p
-                            className="
-                                mt-2
-                                text-2xl
-                                font-semibold
-                                text-[#a8652c]
-                            "
-                        >
-                            ₹
-                            {unpaidFine.toFixed(2)}
-                        </p>
-
-                    </div>
-
-                </div>
+                )}
 
 
                 {/* =================================================
-                    SEARCH
+                    SEARCH + FILTER
                 ================================================= */}
 
                 <div
@@ -580,44 +1128,106 @@ export default function AdminFines() {
                     "
                 >
 
-                    <div className="relative">
+                    <div
+                        className="
+                            flex
+                            flex-col
+                            gap-3
+                            lg:flex-row
+                        "
+                    >
 
-                        <Search
+                        {/* SEARCH */}
+
+                        <div
                             className="
-                                absolute
-                                left-3
-                                top-1/2
-                                h-4
-                                w-4
-                                -translate-y-1/2
-                                text-[#9a8778]
+                                relative
+                                flex-1
                             "
-                        />
+                        >
+
+                            <Search
+                                className="
+                                    absolute
+                                    left-3
+                                    top-1/2
+                                    h-4
+                                    w-4
+                                    -translate-y-1/2
+                                    text-[#9a8778]
+                                "
+                            />
 
 
-                        <input
-                            type="text"
-                            value={search}
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(
+                                        event.target.value
+                                    )
+                                }
+                                placeholder="Search by book, member or member ID..."
+                                className="
+                                    w-full
+                                    rounded-lg
+                                    border
+                                    border-[#ddd0c1]
+                                    bg-[#fffdfb]
+                                    py-2.5
+                                    pl-9
+                                    pr-3
+                                    text-sm
+                                    text-[#2a1d15]
+                                    outline-none
+                                    transition
+                                    focus:border-[#a8652c]
+                                    focus:ring-1
+                                    focus:ring-[#a8652c]
+                                "
+                            />
+
+                        </div>
+
+
+                        {/* FILTER */}
+
+                        <select
+                            value={filter}
                             onChange={(event) =>
-                                setSearch(
+                                setFilter(
                                     event.target.value
                                 )
                             }
-                            placeholder="Search by member, email or book..."
                             className="
-                                w-full
                                 rounded-lg
                                 border
                                 border-[#ddd0c1]
                                 bg-[#fffdfb]
+                                px-4
                                 py-2.5
-                                pl-9
-                                pr-3
                                 text-sm
+                                text-[#2a1d15]
                                 outline-none
                                 focus:border-[#a8652c]
+                                focus:ring-1
+                                focus:ring-[#a8652c]
                             "
-                        />
+                        >
+
+                            <option value="ALL">
+                                All Fines
+                            </option>
+
+                            <option value="OUTSTANDING">
+                                Outstanding
+                            </option>
+
+                            <option value="PAID">
+                                Paid
+                            </option>
+
+                        </select>
 
                     </div>
 
@@ -625,7 +1235,7 @@ export default function AdminFines() {
 
 
                 {/* =================================================
-                    FINE TABLE
+                    TABLE
                 ================================================= */}
 
                 <div
@@ -641,20 +1251,35 @@ export default function AdminFines() {
 
                     {loading ? (
 
+                        /* =========================================
+                           LOADING
+                        ========================================= */
+
                         <div
                             className="
                                 flex
                                 min-h-64
                                 items-center
                                 justify-center
-                                text-sm
-                                text-[#735e50]
                             "
                         >
-                            Loading fines...
+
+                            <p
+                                className="
+                                    text-sm
+                                    text-[#735e50]
+                                "
+                            >
+                                Loading fines...
+                            </p>
+
                         </div>
 
                     ) : filteredFines.length === 0 ? (
+
+                        /* =========================================
+                           EMPTY
+                        ========================================= */
 
                         <div
                             className="
@@ -663,6 +1288,7 @@ export default function AdminFines() {
                                 flex-col
                                 items-center
                                 justify-center
+                                px-4
                             "
                         >
 
@@ -675,12 +1301,12 @@ export default function AdminFines() {
                                     items-center
                                     justify-center
                                     rounded-full
-                                    bg-green-50
-                                    text-green-600
+                                    bg-[#f1e3d3]
+                                    text-[#a8652c]
                                 "
                             >
 
-                                <CheckCircle
+                                <IndianRupee
                                     className="h-5 w-5"
                                 />
 
@@ -700,20 +1326,37 @@ export default function AdminFines() {
                             <p
                                 className="
                                     mt-1
+                                    text-center
                                     text-sm
                                     text-[#9a8778]
                                 "
                             >
-                                There are currently no fine records.
+
+                                {search
+                                    ? "Try a different search."
+                                    : "There are currently no fine records."}
+
                             </p>
 
                         </div>
 
                     ) : (
 
-                        <div className="overflow-x-auto">
+                        /* =========================================
+                           TABLE
+                        ========================================= */
 
-                            <table className="min-w-full">
+                        <div
+                            className="
+                                overflow-x-auto
+                            "
+                        >
+
+                            <table
+                                className="
+                                    min-w-full
+                                "
+                            >
 
                                 <thead
                                     className="
@@ -725,24 +1368,11 @@ export default function AdminFines() {
 
                                     <tr>
 
-                                        <th
-                                            className="
-                                                px-5
-                                                py-3
-                                                text-left
-                                                text-xs
-                                                font-semibold
-                                                uppercase
-                                                tracking-wide
-                                                text-[#735e50]
-                                            "
-                                        >
-                                            Member
-                                        </th>
-
+                                        {/* BOOK */}
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -757,8 +1387,11 @@ export default function AdminFines() {
                                         </th>
 
 
+                                        {/* MEMBER */}
+
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -769,12 +1402,72 @@ export default function AdminFines() {
                                                 text-[#735e50]
                                             "
                                         >
-                                            Days Late
+                                            Member
                                         </th>
 
 
+                                        {/* DUE DATE */}
+
                                         <th
                                             className="
+                                                whitespace-nowrap
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            Due Date
+                                        </th>
+
+
+                                        {/* RETURN DATE */}
+
+                                        <th
+                                            className="
+                                                whitespace-nowrap
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            Return Date
+                                        </th>
+
+
+                                        {/* OVERDUE DAYS */}
+
+                                        <th
+                                            className="
+                                                whitespace-nowrap
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            Overdue
+                                        </th>
+
+
+                                        {/* AMOUNT */}
+
+                                        <th
+                                            className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -789,24 +1482,11 @@ export default function AdminFines() {
                                         </th>
 
 
-                                        <th
-                                            className="
-                                                px-5
-                                                py-3
-                                                text-left
-                                                text-xs
-                                                font-semibold
-                                                uppercase
-                                                tracking-wide
-                                                text-[#735e50]
-                                            "
-                                        >
-                                            Date
-                                        </th>
-
+                                        {/* STATUS */}
 
                                         <th
                                             className="
+                                                whitespace-nowrap
                                                 px-5
                                                 py-3
                                                 text-left
@@ -828,10 +1508,34 @@ export default function AdminFines() {
                                 <tbody>
 
                                     {filteredFines.map(
-                                        (fine) => {
+                                        (fine, index) => {
 
-                                            const status =
-                                                getStatus(
+                                            const amount =
+                                                getAmount(
+                                                    fine
+                                                );
+
+
+                                            const overdueDays =
+                                                getOverdueDays(
+                                                    fine
+                                                );
+
+
+                                            const memberName =
+                                                getMemberName(
+                                                    fine
+                                                );
+
+
+                                            const memberEmail =
+                                                getMemberEmail(
+                                                    fine
+                                                );
+
+
+                                            const paid =
+                                                isPaid(
                                                     fine
                                                 );
 
@@ -840,7 +1544,8 @@ export default function AdminFines() {
 
                                                 <tr
                                                     key={
-                                                        fine.id
+                                                        fine.id ??
+                                                        `${getBookTitle(fine)}-${getMemberId(fine)}-${index}`
                                                     }
                                                     className="
                                                         border-b
@@ -850,84 +1555,9 @@ export default function AdminFines() {
                                                     "
                                                 >
 
-                                                    {/* MEMBER */}
-
-                                                    <td className="px-5 py-4">
-
-                                                        <div>
-
-                                                            <p
-                                                                className="
-                                                                    text-sm
-                                                                    font-medium
-                                                                    text-[#2a1d15]
-                                                                "
-                                                            >
-                                                                {
-                                                                    getUserName(
-                                                                        fine
-                                                                    )
-                                                                }
-                                                            </p>
-
-
-                                                            <p
-                                                                className="
-                                                                    mt-0.5
-                                                                    text-xs
-                                                                    text-[#9a8778]
-                                                                "
-                                                            >
-                                                                {
-                                                                    getUserEmail(
-                                                                        fine
-                                                                    )
-                                                                }
-                                                            </p>
-
-                                                        </div>
-
-                                                    </td>
-
-
-                                                    {/* BOOK */}
-
-                                                    <td
-                                                        className="
-                                                            px-5
-                                                            py-4
-                                                            text-sm
-                                                            text-[#735e50]
-                                                        "
-                                                    >
-                                                        {
-                                                            getBookTitle(
-                                                                fine
-                                                            )
-                                                        }
-                                                    </td>
-
-
-                                                    {/* DAYS LATE */}
-
-                                                    <td
-                                                        className="
-                                                            px-5
-                                                            py-4
-                                                            text-sm
-                                                            text-[#735e50]
-                                                        "
-                                                    >
-                                                        {
-                                                            getDaysLate(
-                                                                fine
-                                                            )
-                                                        }{" "}
-                                                        days
-                                                    </td>
-
-
-                                                    {/* FINE */}
+                                                    {/* =================================
+                                                        BOOK
+                                                    ================================= */}
 
                                                     <td
                                                         className="
@@ -940,59 +1570,298 @@ export default function AdminFines() {
                                                             className="
                                                                 flex
                                                                 items-center
-                                                                gap-1
-                                                                text-sm
-                                                                font-semibold
-                                                                text-[#a8652c]
+                                                                gap-3
                                                             "
                                                         >
 
-                                                            <IndianRupee
+                                                            <div
                                                                 className="
-                                                                    h-3.5
-                                                                    w-3.5
+                                                                    flex
+                                                                    h-9
+                                                                    w-9
+                                                                    shrink-0
+                                                                    items-center
+                                                                    justify-center
+                                                                    rounded-lg
+                                                                    bg-[#f1e3d3]
+                                                                    text-[#a8652c]
                                                                 "
-                                                            />
+                                                            >
 
-                                                            {
-                                                                Number(
-                                                                    getAmount(
-                                                                        fine
-                                                                    )
-                                                                ).toFixed(2)
-                                                            }
+                                                                <BookOpen
+                                                                    className="
+                                                                        h-4
+                                                                        w-4
+                                                                    "
+                                                                />
+
+                                                            </div>
+
+
+                                                            <div>
+
+                                                                <p
+                                                                    className="
+                                                                        whitespace-nowrap
+                                                                        text-sm
+                                                                        font-medium
+                                                                        text-[#2a1d15]
+                                                                    "
+                                                                >
+                                                                    {
+                                                                        getBookTitle(
+                                                                            fine
+                                                                        )
+                                                                    }
+                                                                </p>
+
+                                                            </div>
 
                                                         </div>
 
                                                     </td>
 
 
-                                                    {/* DATE */}
+                                                    {/* =================================
+                                                        MEMBER
+                                                    ================================= */}
 
                                                     <td
                                                         className="
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
+
+                                                        <div
+                                                            className="
+                                                                flex
+                                                                items-center
+                                                                gap-3
+                                                            "
+                                                        >
+
+                                                            <div
+                                                                className="
+                                                                    flex
+                                                                    h-8
+                                                                    w-8
+                                                                    shrink-0
+                                                                    items-center
+                                                                    justify-center
+                                                                    rounded-full
+                                                                    bg-[#ead7c5]
+                                                                    text-xs
+                                                                    font-semibold
+                                                                    text-[#8f501e]
+                                                                "
+                                                            >
+
+                                                                {
+                                                                    getInitial(
+                                                                        memberName
+                                                                    )
+                                                                }
+
+                                                            </div>
+
+
+                                                            <div>
+
+                                                                <p
+                                                                    className="
+                                                                        whitespace-nowrap
+                                                                        text-sm
+                                                                        font-medium
+                                                                        text-[#2a1d15]
+                                                                    "
+                                                                >
+                                                                    {
+                                                                        memberName
+                                                                    }
+                                                                </p>
+
+
+                                                                <p
+                                                                    className="
+                                                                        whitespace-nowrap
+                                                                        text-xs
+                                                                        text-[#9a8778]
+                                                                    "
+                                                                >
+
+                                                                    ID:{" "}
+                                                                    {
+                                                                        getMemberId(
+                                                                            fine
+                                                                        )
+                                                                    }
+
+                                                                    {memberEmail && (
+                                                                        <>
+                                                                            {" • "}
+                                                                            {
+                                                                                memberEmail
+                                                                            }
+                                                                        </>
+                                                                    )}
+
+                                                                </p>
+
+                                                            </div>
+
+                                                        </div>
+
+                                                    </td>
+
+
+                                                    {/* =================================
+                                                        DUE DATE
+                                                    ================================= */}
+
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
                                                             px-5
                                                             py-4
                                                             text-sm
                                                             text-[#735e50]
                                                         "
                                                     >
+
                                                         {
                                                             formatDate(
-                                                                getDate(
+                                                                getDueDate(
                                                                     fine
                                                                 )
                                                             )
                                                         }
+
                                                     </td>
 
 
-                                                    {/* STATUS */}
+                                                    {/* =================================
+                                                        RETURN DATE
+                                                    ================================= */}
 
-                                                    <td className="px-5 py-4">
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                            text-sm
+                                                            text-[#735e50]
+                                                        "
+                                                    >
 
-                                                        {status ===
-                                                        "PAID" ? (
+                                                        {
+                                                            formatDate(
+                                                                getReturnDate(
+                                                                    fine
+                                                                )
+                                                            )
+                                                        }
+
+                                                    </td>
+
+
+                                                    {/* =================================
+                                                        OVERDUE DAYS
+                                                    ================================= */}
+
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
+
+                                                        {overdueDays >
+                                                        0 ? (
+
+                                                            <span
+                                                                className="
+                                                                    inline-flex
+                                                                    rounded-full
+                                                                    bg-red-50
+                                                                    px-2.5
+                                                                    py-1
+                                                                    text-xs
+                                                                    font-medium
+                                                                    text-red-700
+                                                                "
+                                                            >
+
+                                                                {
+                                                                    overdueDays
+                                                                }{" "}
+                                                                day
+                                                                {overdueDays !==
+                                                                1
+                                                                    ? "s"
+                                                                    : ""}
+
+                                                            </span>
+
+                                                        ) : (
+
+                                                            <span
+                                                                className="
+                                                                    text-sm
+                                                                    text-[#9a8778]
+                                                                "
+                                                            >
+                                                                0 days
+                                                            </span>
+
+                                                        )}
+
+                                                    </td>
+
+
+                                                    {/* =================================
+                                                        AMOUNT
+                                                    ================================= */}
+
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
+
+                                                        <span
+                                                            className="
+                                                                text-sm
+                                                                font-semibold
+                                                                text-[#2a1d15]
+                                                            "
+                                                        >
+                                                            {
+                                                                formatMoney(
+                                                                    amount
+                                                                )
+                                                            }
+                                                        </span>
+
+                                                    </td>
+
+
+                                                    {/* =================================
+                                                        STATUS
+                                                    ================================= */}
+
+                                                    <td
+                                                        className="
+                                                            whitespace-nowrap
+                                                            px-5
+                                                            py-4
+                                                        "
+                                                    >
+
+                                                        {paid ? (
 
                                                             <span
                                                                 className="
@@ -1023,7 +1892,7 @@ export default function AdminFines() {
                                                                     text-red-700
                                                                 "
                                                             >
-                                                                Unpaid
+                                                                Outstanding
                                                             </span>
 
                                                         )}

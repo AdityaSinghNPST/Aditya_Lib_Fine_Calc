@@ -5,8 +5,14 @@ import {
     IndianRupee,
 } from "lucide-react";
 
+import { Link } from "react-router-dom";
+
 import Navbar from "../../components/layout/Navbar";
 
+
+// =========================================================
+// ADMIN DASHBOARD
+// =========================================================
 
 export default function AdminDashboard() {
 
@@ -14,8 +20,7 @@ export default function AdminDashboard() {
     // TEMPORARY DASHBOARD DATA
     // =====================================================
     //
-    // We will replace these values with backend API data
-    // after the page layout is working.
+    // These values will be connected to the backend later.
     //
 
     const stats = [
@@ -50,6 +55,51 @@ export default function AdminDashboard() {
 
     ];
 
+
+    // =====================================================
+    // QUICK ACTIONS
+    // =====================================================
+
+    const quickActions = [
+
+        {
+            title: "Manage Books",
+            description:
+                "Add new books, update book information and manage availability.",
+            icon: BookOpen,
+            path: "/admin/books",
+        },
+
+        {
+            title: "Manage Members",
+            description:
+                "Create and manage library member accounts.",
+            icon: Users,
+            path: "/admin/members",
+        },
+
+        {
+            title: "Manage Borrowings",
+            description:
+                "View borrowing records and manage book returns.",
+            icon: ArrowLeftRight,
+            path: "/admin/borrowings",
+        },
+
+        {
+            title: "Automatic Fines",
+            description:
+                "View fines calculated automatically when books are returned late.",
+            icon: IndianRupee,
+            path: "/admin/fines",
+        },
+
+    ];
+
+
+    // =====================================================
+    // RENDER
+    // =====================================================
 
     return (
 
@@ -234,7 +284,9 @@ export default function AdminDashboard() {
                                 </p>
 
                             </div>
+
                         );
+
                     })}
 
                 </div>
@@ -266,182 +318,129 @@ export default function AdminDashboard() {
                                 text-[#735e50]
                             "
                         >
-                            Important library information will
-                            appear here.
+                            Select an area to manage your library.
                         </p>
 
                     </div>
 
 
+                    {/* =================================================
+                        ACTION CARDS
+                    ================================================= */}
+
                     <div
                         className="
-                            rounded-xl
-                            border
-                            border-[#e5d7c5]
-                            bg-white
-                            p-6
-                            shadow-sm
+                            grid
+                            gap-4
+                            sm:grid-cols-2
+                            lg:grid-cols-4
                         "
                     >
 
-                        <div
-                            className="
-                                grid
-                                gap-6
-                                md:grid-cols-3
-                            "
-                        >
+                        {quickActions.map(
+                            (action) => {
 
-                            {/* Books */}
-
-                            <div>
-
-                                <div
-                                    className="
-                                        mb-3
-                                        flex
-                                        h-10
-                                        w-10
-                                        items-center
-                                        justify-center
-                                        rounded-lg
-                                        bg-[#f1e3d3]
-                                        text-[#a8652c]
-                                    "
-                                >
-
-                                    <BookOpen
-                                        className="h-5 w-5"
-                                    />
-
-                                </div>
+                                const Icon =
+                                    action.icon;
 
 
-                                <h3
-                                    className="
-                                        font-medium
-                                        text-[#2a1d15]
-                                    "
-                                >
-                                    Manage Books
-                                </h3>
+                                return (
+
+                                    <Link
+                                        key={action.title}
+                                        to={action.path}
+                                        className="
+                                            group
+                                            rounded-xl
+                                            border
+                                            border-[#e5d7c5]
+                                            bg-white
+                                            p-6
+                                            shadow-sm
+                                            transition
+                                            hover:-translate-y-0.5
+                                            hover:bg-[#fffaf5]
+                                            hover:shadow-md
+                                            focus:outline-none
+                                            focus:ring-2
+                                            focus:ring-[#a8652c]
+                                            focus:ring-offset-2
+                                        "
+                                    >
+
+                                        {/* ICON */}
+
+                                        <div
+                                            className="
+                                                mb-3
+                                                flex
+                                                h-10
+                                                w-10
+                                                items-center
+                                                justify-center
+                                                rounded-lg
+                                                bg-[#f1e3d3]
+                                                text-[#a8652c]
+                                                transition
+                                                group-hover:bg-[#ead8c4]
+                                            "
+                                        >
+
+                                            <Icon
+                                                className="h-5 w-5"
+                                            />
+
+                                        </div>
 
 
-                                <p
-                                    className="
-                                        mt-1
-                                        text-sm
-                                        leading-5
-                                        text-[#735e50]
-                                    "
-                                >
-                                    Add new books, update book
-                                    information and manage availability.
-                                </p>
+                                        {/* TITLE */}
 
-                            </div>
+                                        <h3
+                                            className="
+                                                font-medium
+                                                text-[#2a1d15]
+                                            "
+                                        >
+                                            {action.title}
+                                        </h3>
 
 
-                            {/* Members */}
+                                        {/* DESCRIPTION */}
 
-                            <div>
-
-                                <div
-                                    className="
-                                        mb-3
-                                        flex
-                                        h-10
-                                        w-10
-                                        items-center
-                                        justify-center
-                                        rounded-lg
-                                        bg-[#f1e3d3]
-                                        text-[#a8652c]
-                                    "
-                                >
-
-                                    <Users
-                                        className="h-5 w-5"
-                                    />
-
-                                </div>
+                                        <p
+                                            className="
+                                                mt-1
+                                                text-sm
+                                                leading-5
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            {action.description}
+                                        </p>
 
 
-                                <h3
-                                    className="
-                                        font-medium
-                                        text-[#2a1d15]
-                                    "
-                                >
-                                    Manage Members
-                                </h3>
+                                        {/* LINK INDICATOR */}
 
+                                        <p
+                                            className="
+                                                mt-4
+                                                text-xs
+                                                font-medium
+                                                text-[#a8652c]
+                                                opacity-0
+                                                transition
+                                                group-hover:opacity-100
+                                            "
+                                        >
+                                            Open →
+                                        </p>
 
-                                <p
-                                    className="
-                                        mt-1
-                                        text-sm
-                                        leading-5
-                                        text-[#735e50]
-                                    "
-                                >
-                                    Create and manage library
-                                    member accounts.
-                                </p>
+                                    </Link>
 
-                            </div>
+                                );
 
-
-                            {/* Fines */}
-
-                            <div>
-
-                                <div
-                                    className="
-                                        mb-3
-                                        flex
-                                        h-10
-                                        w-10
-                                        items-center
-                                        justify-center
-                                        rounded-lg
-                                        bg-[#f1e3d3]
-                                        text-[#a8652c]
-                                    "
-                                >
-
-                                    <IndianRupee
-                                        className="h-5 w-5"
-                                    />
-
-                                </div>
-
-
-                                <h3
-                                    className="
-                                        font-medium
-                                        text-[#2a1d15]
-                                    "
-                                >
-                                    Automatic Fines
-                                </h3>
-
-
-                                <p
-                                    className="
-                                        mt-1
-                                        text-sm
-                                        leading-5
-                                        text-[#735e50]
-                                    "
-                                >
-                                    Fines are calculated automatically
-                                    when a book is returned late.
-                                </p>
-
-                            </div>
-
-                        </div>
+                            }
+                        )}
 
                     </div>
 

@@ -9,7 +9,8 @@ import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import LoginView from "./components/auth/LoginView";
-
+import AdminUsers from "./pages/admin/AdminUser";
+import AdminBooks from "./pages/admin/AdminBooks";
 
 // =========================================================
 // ADMIN PAGES
@@ -20,40 +21,8 @@ import LoginView from "./components/auth/LoginView";
 // from your existing frontend design one by one.
 
 
-function AdminBooks() {
-
-    return (
-        <div className="min-h-screen bg-[#faf4ec] p-8">
-
-            <h1 className="text-2xl font-bold text-[#2a1d15]">
-                Books
-            </h1>
-
-            <p className="mt-2 text-[#735e50]">
-                Manage library books here.
-            </p>
-
-        </div>
-    );
-}
 
 
-function AdminMembers() {
-
-    return (
-        <div className="min-h-screen bg-[#faf4ec] p-8">
-
-            <h1 className="text-2xl font-bold text-[#2a1d15]">
-                Members
-            </h1>
-
-            <p className="mt-2 text-[#735e50]">
-                Manage library members here.
-            </p>
-
-        </div>
-    );
-}
 
 
 function AdminBorrowings() {
@@ -254,7 +223,7 @@ function App() {
                                 allowedRole="ADMIN"
                             >
 
-                                <AdminMembers />
+                                <AdminUsers />
 
                             </ProtectedRoute>
                         }

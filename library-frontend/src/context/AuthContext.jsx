@@ -1,15 +1,9 @@
 import {
     createContext,
     useContext,
+    useEffect,
     useState,
 } from "react";
-
-import api, {
-    clearAuthSession,
-    getStoredToken,
-    getStoredUser,
-    setAuthSession,
-} from "../services/api";
 
 
 // =========================================================
@@ -25,41 +19,115 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
 
-    const [token, setToken] = useState(
-        getStoredToken()
-    );
+    // =====================================================
+    // USER
+    // =====================================================
 
-    const [user, setUser] = useState(
-        getStoredUser()
-    );
+    const [user, setUser] = useState(null);
+
+
+    // =====================================================
+    // LOADING
+    // =====================================================
+
+    const [loading, setLoading] = useState(true);
+
+
+    // =====================================================
+    // LOAD AUTH DATA FROM LOCAL STORAGE
+    // =====================================================
+
+    useEffect(() => {
+
+        try {
+
+            const token =
+                localStorage.getItem(
+                    "token"
+                );
+
+
+            const storedUser =
+                localStorage.getItem(
+                    "user"
+                );
+
+
+            if (
+                token &&
+                storedUser
+            ) {
+
+                setUser(
+                    JSON.parse(
+                        storedUser
+                    )
+                );
+
+            } else {
+
+                /*
+                 * If either token or user is missing,
+                 * remove both so we don't end up with
+                 * inconsistent authentication state.
+                 */
+
+                localStorage.removeItem(
+                    "token"
+                );
+
+                localStorage.removeItem(
+                    "user"
+                );
+
+                setUser(null);
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Failed to restore authentication:",
+                error
+            );
+
+
+            localStorage.removeItem(
+                "token"
+            );
+
+            localStorage.removeItem(
+                "user"
+            );
+
+
+            setUser(null);
+
+        } finally {
+
+            setLoading(false);
+        }
+
+    }, []);
 
 
     // =====================================================
     // LOGIN
     // =====================================================
 
-    async function login(email, password) {
+    function login(
+        loginResponse
+    ) {
 
-        /*
-         * Backend:
-         *
-         * POST /api/auth/login
-         *
-         * Request:
-         * {
-         *     email,
-         *     password
-         * }
-         */
-        const response =
-            await api.auth.login({
-                email,
-                password,
-            });
+        if (!loginResponse) {
+
+            throw new Error(
+                "Invalid login response."
+            );
+        }
 
 
         /*
-         * Backend LoginResponse is:
+         * Backend LoginResponse:
          *
          * {
          *     token,
@@ -70,58 +138,70 @@ export function AuthProvider({ children }) {
          * }
          */
 
-        const receivedToken =
-            response.token;
+
+        const token =
+            loginResponse.token;
 
 
-        const receivedUser = {
-
-            id:
-                response.userId,
-
-            name:
-                response.name,
-
-            email:
-                response.email,
-
-            role:
-                response.role,
-
-        };
-
-
-        // Make sure backend returned authentication data.
-        if (
-            !receivedToken ||
-            !receivedUser.role
-        ) {
+        if (!token) {
 
             throw new Error(
-                "Invalid login response from server."
+                "Login response does not contain a token."
             );
         }
 
 
-        // Save in React state.
-        setToken(
-            receivedToken
+        const loggedInUser = {
+
+            id:
+                loginResponse.userId,
+
+            name:
+                loginResponse.name,
+
+            email:
+                loginResponse.email,
+
+            role:
+                String(
+                    loginResponse.role || ""
+                ).toUpperCase(),
+
+        };
+
+
+        // =================================================
+        // SAVE TOKEN
+        // =================================================
+
+        localStorage.setItem(
+            "token",
+            token
         );
+
+
+        // =================================================
+        // SAVE USER
+        // =================================================
+
+        localStorage.setItem(
+            "user",
+            JSON.stringify(
+                loggedInUser
+            )
+        );
+
+
+        // =================================================
+        // UPDATE REACT STATE
+        // =================================================
 
         setUser(
-            receivedUser
+            loggedInUser
         );
 
 
-        // Save so refresh doesn't log the user out.
-        setAuthSession(
-            receivedToken,
-            receivedUser
-        );
-
-
-        // Return user to LoginView.
-        return receivedUser;
+        return loggedInUser;
     }
 
 
@@ -131,22 +211,30 @@ export function AuthProvider({ children }) {
 
     function logout() {
 
-        setToken("");
+        localStorage.removeItem(
+            "token"
+        );
+
+
+        localStorage.removeItem(
+            "user"
+        );
+
 
         setUser(null);
-
-        clearAuthSession();
     }
 
 
     // =====================================================
-    // AUTHENTICATION STATUS
+    // AUTHENTICATION CHECK
     // =====================================================
 
     const isAuthenticated =
         Boolean(
-            token &&
-            user
+            user &&
+            localStorage.getItem(
+                "token"
+            )
         );
 
 
@@ -156,9 +244,9 @@ export function AuthProvider({ children }) {
 
     const value = {
 
-        token,
-
         user,
+
+        loading,
 
         isAuthenticated,
 
@@ -169,6 +257,10 @@ export function AuthProvider({ children }) {
     };
 
 
+    // =====================================================
+    // PROVIDER
+    // =====================================================
+
     return (
 
         <AuthContext.Provider
@@ -178,24 +270,27 @@ export function AuthProvider({ children }) {
             {children}
 
         </AuthContext.Provider>
+
     );
 }
 
 
 // =========================================================
-// CUSTOM HOOK
+// USE AUTH
 // =========================================================
 
 export function useAuth() {
 
     const context =
-        useContext(AuthContext);
+        useContext(
+            AuthContext
+        );
 
 
     if (!context) {
 
         throw new Error(
-            "useAuth must be used inside AuthProvider"
+            "useAuth must be used inside AuthProvider."
         );
     }
 

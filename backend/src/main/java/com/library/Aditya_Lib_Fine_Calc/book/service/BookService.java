@@ -151,6 +151,96 @@ public class BookService {
     }
 
     // =========================================================
+    // SET BOOK AVAILABILITY
+    // =========================================================
+
+    public void setBookAvailability(
+            Long bookId,
+            boolean available
+    ) {
+
+        List<Book> books =
+                bookStorageService.getAllBooks();
+
+        boolean found = false;
+
+        for (Book book : books) {
+
+            if (book.getId() != null
+                    && book.getId().equals(bookId)) {
+
+                book.setAvailable(available);
+
+                found = true;
+
+                break;
+            }
+        }
+
+        if (!found) {
+
+            throw new IllegalArgumentException(
+                    "Book not found"
+            );
+        }
+
+        bookStorageService.saveAllBooks(books);
+    }
+
+    // =========================================================
+    // SYNC AVAILABILITY FROM BORROWINGS
+    // =========================================================
+
+    public void syncAvailability(
+            java.util.Set<Long> borrowedBookIds
+    ) {
+
+        List<Book> books =
+                bookStorageService.getAllBooks();
+
+        for (Book book : books) {
+
+            boolean available =
+                    !borrowedBookIds.contains(
+                            book.getId()
+                    );
+
+            book.setAvailable(available);
+        }
+
+        bookStorageService.saveAllBooks(books);
+    }
+
+    // =========================================================
+    // DELETE BOOK
+    // =========================================================
+
+    public boolean deleteBook(Long id) {
+
+        List<Book> books =
+                bookStorageService.getAllBooks();
+
+        for (int i = 0;
+             i < books.size();
+             i++) {
+
+            if (books.get(i).getId() != null
+                    && books.get(i).getId().equals(id)) {
+
+                books.remove(i);
+
+                bookStorageService.saveAllBooks(
+                        books
+                );
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // =========================================================
     // CREATE BOOK
     // =========================================================
 

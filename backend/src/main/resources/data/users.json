@@ -16,4 +16,16 @@
   "email" : "aditya@gmail.com",
   "password" : "$2a$10$dXzT0jq0lXgTn0sjuwyqY.uBiipaDu7zyBmhFAcYQfObSVr/CJ66a",
   "role" : "USER"
+}, {
+  "id" : 4,
+  "name" : "Arav",
+  "email" : "arav@gmail.com",
+  "password" : "$2a$10$XhCcSmvdIXEhYr9X0GUg0OXu4Uc9/5urxnMAy0O8wjIfNwAdjNgse",
+  "role" : "USER"
+}, {
+  "id" : 5,
+  "name" : "vanshika soni",
+  "email" : "vanshika@gmail.com",
+  "password" : "$2a$10$ZI2JPoWa6GKAS17MVTkGfeiQ1wuhDRDZppao578FmqCh6RnAM320m",
+  "role" : "USER"
 } ]

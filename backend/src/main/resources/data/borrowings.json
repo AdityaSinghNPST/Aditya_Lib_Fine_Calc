@@ -14,4 +14,84 @@
   "dueDate" : "2026-09-02",
   "returnDate" : "2026-08-19",
   "status" : "RETURNED"
+}, {
+  "id" : 3,
+  "bookId" : 1,
+  "userId" : 4,
+  "issueDate" : "2026-08-20",
+  "dueDate" : "2026-08-30",
+  "returnDate" : "2026-08-20",
+  "status" : "RETURNED"
+}, {
+  "id" : 4,
+  "bookId" : 1,
+  "userId" : 4,
+  "issueDate" : "2026-08-20",
+  "dueDate" : "2026-08-30",
+  "returnDate" : "2026-08-20",
+  "status" : "RETURNED"
+}, {
+  "id" : 5,
+  "bookId" : 1,
+  "userId" : 4,
+  "issueDate" : "2026-08-20",
+  "dueDate" : "2026-08-30",
+  "returnDate" : "2026-08-20",
+  "status" : "RETURNED"
+}, {
+  "id" : 6,
+  "bookId" : 1,
+  "userId" : 4,
+  "issueDate" : "2026-08-20",
+  "dueDate" : "2026-08-30",
+  "returnDate" : "2026-08-20",
+  "status" : "RETURNED"
+}, {
+  "id" : 7,
+  "bookId" : 1,
+  "userId" : 4,
+  "issueDate" : "2026-08-20",
+  "dueDate" : "2026-08-30",
+  "returnDate" : "2026-08-20",
+  "status" : "RETURNED"
+}, {
+  "id" : 8,
+  "bookId" : 1,
+  "userId" : 4,
+  "issueDate" : "2026-08-20",
+  "dueDate" : "2026-08-30",
+  "returnDate" : "2026-08-20",
+  "status" : "RETURNED"
+}, {
+  "id" : 9,
+  "bookId" : 1,
+  "userId" : 5,
+  "issueDate" : "2026-08-20",
+  "dueDate" : "2026-08-30",
+  "returnDate" : "2026-08-20",
+  "status" : "RETURNED"
+}, {
+  "id" : 10,
+  "bookId" : 2,
+  "userId" : 5,
+  "issueDate" : "2026-08-20",
+  "dueDate" : "2026-08-30",
+  "returnDate" : "2026-08-20",
+  "status" : "RETURNED"
+}, {
+  "id" : 11,
+  "bookId" : 3,
+  "userId" : 5,
+  "issueDate" : "2026-08-20",
+  "dueDate" : "2026-08-30",
+  "returnDate" : "2026-08-20",
+  "status" : "RETURNED"
+}, {
+  "id" : 12,
+  "bookId" : 1,
+  "userId" : 5,
+  "issueDate" : "2026-08-20",
+  "dueDate" : "2026-08-30",
+  "returnDate" : null,
+  "status" : "BORROWED"
 } ]

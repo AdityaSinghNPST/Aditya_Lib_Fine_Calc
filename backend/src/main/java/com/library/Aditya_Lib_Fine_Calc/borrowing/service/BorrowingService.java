@@ -13,7 +13,11 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import jakarta.annotation.PostConstruct;
 
 @Service
 public class BorrowingService {
@@ -40,6 +44,94 @@ public class BorrowingService {
         this.userService = userService;
         this.fineService = fineService;
         this.settingsService = settingsService;
+    }
+
+    // =========================================================
+    // SYNC BOOK AVAILABILITY ON STARTUP
+    // =========================================================
+
+    @PostConstruct
+    public void syncBookAvailabilityOnStartup() {
+
+        syncAllBookAvailability();
+    }
+
+    // =========================================================
+    // SYNC ALL BOOK AVAILABILITY
+    // =========================================================
+
+    public void syncAllBookAvailability() {
+
+        Set<Long> borrowedBookIds =
+                getActiveBorrowedBookIds();
+
+        bookService.syncAvailability(
+                borrowedBookIds
+        );
+    }
+
+    // =========================================================
+    // ACTIVE BORROWING HELPERS
+    // =========================================================
+
+    public boolean hasActiveBorrowingForBook(
+            Long bookId
+    ) {
+
+        for (Borrowing borrowing :
+                borrowingStorageService.getAllBorrowings()) {
+
+            if (isActiveBorrowing(borrowing)
+                    && bookId.equals(
+                    borrowing.getBookId())) {
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean isActiveBorrowing(
+            Borrowing borrowing
+    ) {
+
+        if (borrowing.getStatus()
+                == BorrowingStatus.RETURNED) {
+
+            return false;
+        }
+
+        if (borrowing.getReturnDate() != null) {
+
+            return false;
+        }
+
+        return borrowing.getStatus()
+                == BorrowingStatus.BORROWED
+                || borrowing.getStatus()
+                == BorrowingStatus.OVERDUE;
+    }
+
+    private Set<Long> getActiveBorrowedBookIds() {
+
+        Set<Long> borrowedBookIds =
+                new HashSet<>();
+
+        for (Borrowing borrowing :
+                borrowingStorageService.getAllBorrowings()) {
+
+            if (isActiveBorrowing(borrowing)
+                    && borrowing.getBookId()
+                    != null) {
+
+                borrowedBookIds.add(
+                        borrowing.getBookId()
+                );
+            }
+        }
+
+        return borrowedBookIds;
     }
 
     // =========================================================
@@ -141,6 +233,30 @@ public class BorrowingService {
             );
         }
 
+        // Prevent borrowing when an active record already exists.
+        if (hasActiveBorrowingForBook(bookId)) {
+
+            throw new IllegalStateException(
+                    "Book is currently not available"
+            );
+        }
+
+        // Prevent the same user from borrowing the same book twice.
+        for (Borrowing existing :
+                borrowingStorageService.getAllBorrowings()) {
+
+            if (isActiveBorrowing(existing)
+                    && bookId.equals(
+                    existing.getBookId())
+                    && userId.equals(
+                    existing.getUserId())) {
+
+                throw new IllegalStateException(
+                        "You have already borrowed this book"
+                );
+            }
+        }
+
         // Get all existing borrowings.
         List<Borrowing> borrowings =
                 borrowingStorageService.getAllBorrowings();
@@ -193,10 +309,10 @@ public class BorrowingService {
         );
 
         // Mark the book as unavailable.
-        book.setAvailable(false);
-
-        // Save the updated book.
-        bookService.updateBook(book);
+        bookService.setBookAvailability(
+                bookId,
+                false
+        );
 
         return borrowing;
     }
@@ -305,17 +421,21 @@ public class BorrowingService {
                 borrowings
         );
 
-        // Make the book available again.
+        // Make the book available again only when no
+        // other active borrowing exists for it.
         Book book =
                 bookService.findBookById(
                         borrowing.getBookId()
                 );
 
-        if (book != null) {
+        if (book != null
+                && !hasActiveBorrowingForBook(
+                book.getId())) {
 
-            book.setAvailable(true);
-
-            bookService.updateBook(book);
+            bookService.setBookAvailability(
+                    book.getId(),
+                    true
+            );
         }
 
         return borrowing;

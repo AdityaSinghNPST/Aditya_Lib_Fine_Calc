@@ -2,6 +2,7 @@ package com.library.Aditya_Lib_Fine_Calc.book.controller;
 
 import com.library.Aditya_Lib_Fine_Calc.book.model.Book;
 import com.library.Aditya_Lib_Fine_Calc.book.service.BookService;
+import com.library.Aditya_Lib_Fine_Calc.borrowing.service.BorrowingService;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,8 +16,14 @@ public class BookController {
 
     private final BookService bookService;
 
-    public BookController(BookService bookService) {
+    private final BorrowingService borrowingService;
+
+    public BookController(
+            BookService bookService,
+            BorrowingService borrowingService
+    ) {
         this.bookService = bookService;
+        this.borrowingService = borrowingService;
     }
 
     // =========================================================
@@ -128,6 +135,37 @@ public class BookController {
         }
 
         return ResponseEntity.ok(result);
+    }
+
+    // =========================================================
+    // DELETE BOOK
+    // =========================================================
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBook(
+            @PathVariable Long id
+    ) {
+
+        if (borrowingService.hasActiveBorrowingForBook(id)) {
+
+            throw new IllegalStateException(
+                    "Cannot delete a book that is currently borrowed"
+            );
+        }
+
+        boolean deleted =
+                bookService.deleteBook(id);
+
+        if (!deleted) {
+
+            return ResponseEntity
+                    .notFound()
+                    .build();
+        }
+
+        return ResponseEntity
+                .noContent()
+                .build();
     }
 
     // =========================================================

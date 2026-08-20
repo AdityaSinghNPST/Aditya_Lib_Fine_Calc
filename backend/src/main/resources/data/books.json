@@ -3,11 +3,17 @@
   "title" : "Clean Code",
   "author" : "Robert C. Martin",
   "isbn" : "9780132350884",
-  "available" : true
+  "available" : false
 }, {
   "id" : 2,
   "title" : "code with python",
   "author" : "Arav",
   "isbn" : "1234567890",
+  "available" : true
+}, {
+  "id" : 3,
+  "title" : "Beauty and the Beast",
+  "author" : "arav ji",
+  "isbn" : "81623",
   "available" : true
 } ]

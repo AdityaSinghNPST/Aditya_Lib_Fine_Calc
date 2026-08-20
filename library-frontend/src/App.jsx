@@ -11,6 +11,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import LoginView from "./components/auth/LoginView";
 import AdminUsers from "./pages/admin/AdminUser";
 import AdminBooks from "./pages/admin/AdminBooks";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminBorrowings from "./pages/admin/AdminBorrowings";
 
 // =========================================================
 // ADMIN PAGES
@@ -25,22 +27,6 @@ import AdminBooks from "./pages/admin/AdminBooks";
 
 
 
-function AdminBorrowings() {
-
-    return (
-        <div className="min-h-screen bg-[#faf4ec] p-8">
-
-            <h1 className="text-2xl font-bold text-[#2a1d15]">
-                Borrowings
-            </h1>
-
-            <p className="mt-2 text-[#735e50]">
-                View and manage borrowing records.
-            </p>
-
-        </div>
-    );
-}
 
 
 function AdminFines() {
@@ -61,22 +47,6 @@ function AdminFines() {
 }
 
 
-function AdminSettings() {
-
-    return (
-        <div className="min-h-screen bg-[#faf4ec] p-8">
-
-            <h1 className="text-2xl font-bold text-[#2a1d15]">
-                Settings
-            </h1>
-
-            <p className="mt-2 text-[#735e50]">
-                Configure borrowing period and fine amount.
-            </p>
-
-        </div>
-    );
-}
 
 
 // =========================================================

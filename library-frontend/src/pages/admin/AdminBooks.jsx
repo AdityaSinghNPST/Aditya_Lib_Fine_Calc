@@ -4,11 +4,7 @@ import {
     BookOpen,
     Plus,
     Search,
-    Pencil,
-    Trash2,
     X,
-    ChevronLeft,
-    ChevronRight,
 } from "lucide-react";
 
 import Navbar from "../../components/layout/Navbar";
@@ -19,64 +15,23 @@ import api from "../../services/api";
 export default function AdminBooks() {
 
     // =====================================================
-    // BOOK DATA
+    // STATE
     // =====================================================
 
-    const [books, setBooks] = useState([]);
+    const [books, setBooks] =
+        useState([]);
 
+    const [loading, setLoading] =
+        useState(true);
 
-    // =====================================================
-    // LOADING / ERROR
-    // =====================================================
-
-    const [loading, setLoading] = useState(true);
-
-    const [error, setError] = useState("");
-
-
-    // =====================================================
-    // SEARCH
-    // =====================================================
-
-    const [titleSearch, setTitleSearch] =
+    const [error, setError] =
         useState("");
 
-    const [authorSearch, setAuthorSearch] =
+    const [search, setSearch] =
         useState("");
-
-
-    // =====================================================
-    // PAGINATION
-    // =====================================================
-
-    const [page, setPage] =
-        useState(0);
-
-    const [pageSize] =
-        useState(10);
-
-
-    /*
-     * We don't know the total number of pages
-     * because the backend returns List<Book>.
-     *
-     * So we use whether the returned list contains
-     * a full page to determine whether a next page
-     * might exist.
-     */
-    const [hasNextPage, setHasNextPage] =
-        useState(false);
-
-
-    // =====================================================
-    // FORM
-    // =====================================================
 
     const [showForm, setShowForm] =
         useState(false);
-
-    const [editingBook, setEditingBook] =
-        useState(null);
 
 
     // =====================================================
@@ -91,42 +46,34 @@ export default function AdminBooks() {
 
             setError("");
 
-
             const data =
                 await api.books.getAll({
-
-                    page,
-
-                    size: pageSize,
-
-                    title: titleSearch,
-
-                    author: authorSearch,
-
+                    page: 0,
+                    size: 100,
                 });
 
 
             /*
-             * Backend returns List<Book>.
-             *
-             * Make sure we always store an array.
+             * Depending on the backend response,
+             * books may be directly returned as an array
+             * or inside a "content" property.
              */
-            const result =
-                Array.isArray(data)
-                    ? data
-                    : [];
 
+            if (Array.isArray(data)) {
 
-            setBooks(result);
+                setBooks(data);
 
+            } else if (
+                data &&
+                Array.isArray(data.content)
+            ) {
 
-            /*
-             * If we receive a full page,
-             * there may be another page.
-             */
-            setHasNextPage(
-                result.length === pageSize
-            );
+                setBooks(data.content);
+
+            } else {
+
+                setBooks([]);
+            }
 
         } catch (err) {
 
@@ -142,43 +89,51 @@ export default function AdminBooks() {
     }
 
 
-    // =====================================================
-    // LOAD WHEN PAGE / SEARCH CHANGES
-    // =====================================================
-
     useEffect(() => {
 
         loadBooks();
 
-    }, [
-        page,
-        titleSearch,
-        authorSearch,
-    ]);
+    }, []);
 
 
     // =====================================================
     // SEARCH
     // =====================================================
 
-    function handleTitleSearch(value) {
+    const filteredBooks =
+        books.filter((book) => {
 
-        setTitleSearch(value);
-
-        /*
-         * Start from first page when
-         * search criteria changes.
-         */
-        setPage(0);
-    }
+            const value =
+                search
+                    .toLowerCase()
+                    .trim();
 
 
-    function handleAuthorSearch(value) {
+            if (!value) {
+                return true;
+            }
 
-        setAuthorSearch(value);
 
-        setPage(0);
-    }
+            return (
+
+                String(book.title || "")
+                    .toLowerCase()
+                    .includes(value)
+
+                ||
+
+                String(book.author || "")
+                    .toLowerCase()
+                    .includes(value)
+
+                ||
+
+                String(book.isbn || "")
+                    .toLowerCase()
+                    .includes(value)
+
+            );
+        });
 
 
     // =====================================================
@@ -187,103 +142,19 @@ export default function AdminBooks() {
 
     function handleAddBook() {
 
-        setEditingBook(null);
-
         setShowForm(true);
-
     }
 
 
     // =====================================================
-    // EDIT BOOK
+    // SUCCESS
     // =====================================================
 
-    function handleEditBook(book) {
-
-        setEditingBook(book);
-
-        setShowForm(true);
-
-    }
-
-
-    // =====================================================
-    // DELETE BOOK
-    // =====================================================
-
-    async function handleDeleteBook(book) {
-
-        /*
-         * The backend DELETE endpoint has not been
-         * added yet.
-         *
-         * We keep this function ready so that when
-         * DELETE /api/books/{id} is implemented,
-         * only this API call needs to be enabled.
-         */
-
-        const confirmed =
-            window.confirm(
-                `Delete "${book.title}"?`
-            );
-
-
-        if (!confirmed) {
-
-            return;
-        }
-
-
-        try {
-
-            setError("");
-
-
-            await api.books.delete(
-                book.id
-            );
-
-
-            await loadBooks();
-
-        } catch (err) {
-
-            /*
-             * Currently this will normally return
-             * an error because the backend DELETE
-             * endpoint hasn't been implemented yet.
-             */
-            setError(
-                err.message ||
-                "Book deletion is not available yet."
-            );
-        }
-    }
-
-
-    // =====================================================
-    // FORM SUCCESS
-    // =====================================================
-
-    async function handleFormSuccess() {
+    async function handleSuccess() {
 
         setShowForm(false);
-
-        setEditingBook(null);
 
         await loadBooks();
-    }
-
-
-    // =====================================================
-    // FORM CANCEL
-    // =====================================================
-
-    function handleFormCancel() {
-
-        setShowForm(false);
-
-        setEditingBook(null);
     }
 
 
@@ -295,10 +166,6 @@ export default function AdminBooks() {
                 bg-[#faf4ec]
             "
         >
-
-            {/* =================================================
-                NAVBAR
-            ================================================= */}
 
             <Navbar />
 
@@ -364,7 +231,7 @@ export default function AdminBooks() {
                                 text-[#735e50]
                             "
                         >
-                            Manage the library book collection.
+                            Manage books in the library.
                         </p>
 
                     </div>
@@ -385,9 +252,7 @@ export default function AdminBooks() {
                             text-sm
                             font-medium
                             text-white
-                            transition
                             hover:bg-[#8f501e]
-                            active:scale-[0.98]
                         "
                     >
 
@@ -410,7 +275,7 @@ export default function AdminBooks() {
                         className="
                             mb-5
                             flex
-                            items-start
+                            items-center
                             justify-between
                             rounded-lg
                             border
@@ -433,11 +298,6 @@ export default function AdminBooks() {
                             onClick={() =>
                                 setError("")
                             }
-                            className="
-                                ml-4
-                                text-red-500
-                                hover:text-red-700
-                            "
                         >
 
                             <X className="h-4 w-4" />
@@ -465,106 +325,44 @@ export default function AdminBooks() {
                     "
                 >
 
-                    <div
-                        className="
-                            grid
-                            gap-3
-                            md:grid-cols-2
-                        "
-                    >
+                    <div className="relative">
 
-                        {/* Title */}
-
-                        <div className="relative">
-
-                            <Search
-                                className="
-                                    absolute
-                                    left-3
-                                    top-1/2
-                                    h-4
-                                    w-4
-                                    -translate-y-1/2
-                                    text-[#9a8778]
-                                "
-                            />
+                        <Search
+                            className="
+                                absolute
+                                left-3
+                                top-1/2
+                                h-4
+                                w-4
+                                -translate-y-1/2
+                                text-[#9a8778]
+                            "
+                        />
 
 
-                            <input
-                                value={titleSearch}
-                                onChange={(e) =>
-                                    handleTitleSearch(
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Search by title..."
-                                className="
-                                    w-full
-                                    rounded-lg
-                                    border
-                                    border-[#ddd0c1]
-                                    bg-[#fffdfb]
-                                    py-2.5
-                                    pl-9
-                                    pr-3
-                                    text-sm
-                                    text-[#2a1d15]
-                                    outline-none
-                                    placeholder:text-[#a8988a]
-                                    focus:border-[#a8652c]
-                                    focus:ring-2
-                                    focus:ring-[#a8652c]/10
-                                "
-                            />
-
-                        </div>
-
-
-                        {/* Author */}
-
-                        <div className="relative">
-
-                            <Search
-                                className="
-                                    absolute
-                                    left-3
-                                    top-1/2
-                                    h-4
-                                    w-4
-                                    -translate-y-1/2
-                                    text-[#9a8778]
-                                "
-                            />
-
-
-                            <input
-                                value={authorSearch}
-                                onChange={(e) =>
-                                    handleAuthorSearch(
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Search by author..."
-                                className="
-                                    w-full
-                                    rounded-lg
-                                    border
-                                    border-[#ddd0c1]
-                                    bg-[#fffdfb]
-                                    py-2.5
-                                    pl-9
-                                    pr-3
-                                    text-sm
-                                    text-[#2a1d15]
-                                    outline-none
-                                    placeholder:text-[#a8988a]
-                                    focus:border-[#a8652c]
-                                    focus:ring-2
-                                    focus:ring-[#a8652c]/10
-                                "
-                            />
-
-                        </div>
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(e) =>
+                                setSearch(
+                                    e.target.value
+                                )
+                            }
+                            placeholder="Search by title, author or ISBN..."
+                            className="
+                                w-full
+                                rounded-lg
+                                border
+                                border-[#ddd0c1]
+                                bg-[#fffdfb]
+                                py-2.5
+                                pl-9
+                                pr-3
+                                text-sm
+                                outline-none
+                                focus:border-[#a8652c]
+                            "
+                        />
 
                     </div>
 
@@ -601,7 +399,7 @@ export default function AdminBooks() {
                             Loading books...
                         </div>
 
-                    ) : books.length === 0 ? (
+                    ) : filteredBooks.length === 0 ? (
 
                         <div
                             className="
@@ -610,8 +408,6 @@ export default function AdminBooks() {
                                 flex-col
                                 items-center
                                 justify-center
-                                px-6
-                                text-center
                             "
                         >
 
@@ -648,75 +444,114 @@ export default function AdminBooks() {
                                 className="
                                     mt-1
                                     text-sm
-                                    text-[#8e7b6d]
+                                    text-[#9a8778]
                                 "
                             >
-                                Try changing your search or add a new book.
+                                Add a book to get started.
                             </p>
 
                         </div>
 
                     ) : (
 
-                        <>
+                        <div className="overflow-x-auto">
 
-                            <div className="overflow-x-auto">
+                            <table className="min-w-full">
 
-                                <table
+                                <thead
                                     className="
-                                        min-w-full
-                                        text-left
+                                        border-b
+                                        border-[#e5d7c5]
+                                        bg-[#fcf8f3]
                                     "
                                 >
 
-                                    <thead
-                                        className="
-                                            border-b
-                                            border-[#e5d7c5]
-                                            bg-[#fcf8f3]
-                                        "
-                                    >
+                                    <tr>
 
-                                        <tr>
-
-                                            <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#735e50]">
-                                                Title
-                                            </th>
-
-                                            <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#735e50]">
-                                                Author
-                                            </th>
-
-                                            <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#735e50]">
-                                                ISBN
-                                            </th>
-
-                                            <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[#735e50]">
-                                                Status
-                                            </th>
-
-                                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[#735e50]">
-                                                Actions
-                                            </th>
-
-                                        </tr>
-
-                                    </thead>
+                                        <th
+                                            className="
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            Book
+                                        </th>
 
 
-                                    <tbody>
+                                        <th
+                                            className="
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            Author
+                                        </th>
 
-                                        {books.map((book) => (
+
+                                        <th
+                                            className="
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            ISBN
+                                        </th>
+
+
+                                        <th
+                                            className="
+                                                px-5
+                                                py-3
+                                                text-left
+                                                text-xs
+                                                font-semibold
+                                                uppercase
+                                                tracking-wide
+                                                text-[#735e50]
+                                            "
+                                        >
+                                            Status
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody>
+
+                                    {filteredBooks.map(
+                                        (book) => (
 
                                             <tr
                                                 key={book.id}
                                                 className="
                                                     border-b
                                                     border-[#eee5dc]
-                                                    last:border-b-0
+                                                    last:border-0
                                                     hover:bg-[#fffaf5]
                                                 "
                                             >
+
+                                                {/* BOOK */}
 
                                                 <td className="px-5 py-4">
 
@@ -733,7 +568,6 @@ export default function AdminBooks() {
                                                                 flex
                                                                 h-9
                                                                 w-9
-                                                                shrink-0
                                                                 items-center
                                                                 justify-center
                                                                 rounded-lg
@@ -747,20 +581,36 @@ export default function AdminBooks() {
                                                         </div>
 
 
-                                                        <span
-                                                            className="
-                                                                text-sm
-                                                                font-medium
-                                                                text-[#2a1d15]
-                                                            "
-                                                        >
-                                                            {book.title}
-                                                        </span>
+                                                        <div>
+
+                                                            <p
+                                                                className="
+                                                                    text-sm
+                                                                    font-medium
+                                                                    text-[#2a1d15]
+                                                                "
+                                                            >
+                                                                {book.title}
+                                                            </p>
+
+
+                                                            <p
+                                                                className="
+                                                                    text-xs
+                                                                    text-[#9a8778]
+                                                                "
+                                                            >
+                                                                ID: {book.id}
+                                                            </p>
+
+                                                        </div>
 
                                                     </div>
 
                                                 </td>
 
+
+                                                {/* AUTHOR */}
 
                                                 <td
                                                     className="
@@ -774,6 +624,8 @@ export default function AdminBooks() {
                                                 </td>
 
 
+                                                {/* ISBN */}
+
                                                 <td
                                                     className="
                                                         px-5
@@ -782,9 +634,11 @@ export default function AdminBooks() {
                                                         text-[#735e50]
                                                     "
                                                 >
-                                                    {book.isbn}
+                                                    {book.isbn || "—"}
                                                 </td>
 
+
+                                                {/* STATUS */}
 
                                                 <td className="px-5 py-4">
 
@@ -811,12 +665,12 @@ export default function AdminBooks() {
                                                             className="
                                                                 inline-flex
                                                                 rounded-full
-                                                                bg-orange-50
+                                                                bg-red-50
                                                                 px-2.5
                                                                 py-1
                                                                 text-xs
                                                                 font-medium
-                                                                text-orange-700
+                                                                text-red-700
                                                             "
                                                         >
                                                             Borrowed
@@ -826,196 +680,16 @@ export default function AdminBooks() {
 
                                                 </td>
 
-
-                                                <td className="px-5 py-4">
-
-                                                    <div
-                                                        className="
-                                                            flex
-                                                            justify-end
-                                                            gap-2
-                                                        "
-                                                    >
-
-                                                        {/* Edit */}
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                handleEditBook(
-                                                                    book
-                                                                )
-                                                            }
-                                                            className="
-                                                                flex
-                                                                h-8
-                                                                w-8
-                                                                items-center
-                                                                justify-center
-                                                                rounded-lg
-                                                                text-[#73533b]
-                                                                hover:bg-[#f1e3d3]
-                                                            "
-                                                            title="Edit book"
-                                                        >
-
-                                                            <Pencil className="h-4 w-4" />
-
-                                                        </button>
-
-
-                                                        {/* Delete */}
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                handleDeleteBook(
-                                                                    book
-                                                                )
-                                                            }
-                                                            className="
-                                                                flex
-                                                                h-8
-                                                                w-8
-                                                                items-center
-                                                                justify-center
-                                                                rounded-lg
-                                                                text-red-500
-                                                                hover:bg-red-50
-                                                            "
-                                                            title="Delete book"
-                                                        >
-
-                                                            <Trash2 className="h-4 w-4" />
-
-                                                        </button>
-
-                                                    </div>
-
-                                                </td>
-
                                             </tr>
 
-                                        ))}
+                                        )
+                                    )}
 
-                                    </tbody>
+                                </tbody>
 
-                                </table>
+                            </table>
 
-                            </div>
-
-
-                            {/* =================================================
-                                PAGINATION
-                            ================================================= */}
-
-                            <div
-                                className="
-                                    flex
-                                    items-center
-                                    justify-between
-                                    border-t
-                                    border-[#e5d7c5]
-                                    px-5
-                                    py-3
-                                "
-                            >
-
-                                <p
-                                    className="
-                                        text-xs
-                                        text-[#8e7b6d]
-                                    "
-                                >
-                                    Page {page + 1}
-                                </p>
-
-
-                                <div
-                                    className="
-                                        flex
-                                        items-center
-                                        gap-2
-                                    "
-                                >
-
-                                    <button
-                                        type="button"
-                                        disabled={
-                                            page === 0 ||
-                                            loading
-                                        }
-                                        onClick={() =>
-                                            setPage(
-                                                (current) =>
-                                                    Math.max(
-                                                        0,
-                                                        current - 1
-                                                    )
-                                            )
-                                        }
-                                        className="
-                                            flex
-                                            h-8
-                                            w-8
-                                            items-center
-                                            justify-center
-                                            rounded-lg
-                                            border
-                                            border-[#ddd0c1]
-                                            bg-white
-                                            text-[#73533b]
-                                            transition
-                                            hover:bg-[#f5ede3]
-                                            disabled:cursor-not-allowed
-                                            disabled:opacity-40
-                                        "
-                                    >
-
-                                        <ChevronLeft className="h-4 w-4" />
-
-                                    </button>
-
-
-                                    <button
-                                        type="button"
-                                        disabled={
-                                            !hasNextPage ||
-                                            loading
-                                        }
-                                        onClick={() =>
-                                            setPage(
-                                                (current) =>
-                                                    current + 1
-                                            )
-                                        }
-                                        className="
-                                            flex
-                                            h-8
-                                            w-8
-                                            items-center
-                                            justify-center
-                                            rounded-lg
-                                            border
-                                            border-[#ddd0c1]
-                                            bg-white
-                                            text-[#73533b]
-                                            transition
-                                            hover:bg-[#f5ede3]
-                                            disabled:cursor-not-allowed
-                                            disabled:opacity-40
-                                        "
-                                    >
-
-                                        <ChevronRight className="h-4 w-4" />
-
-                                    </button>
-
-                                </div>
-
-                            </div>
-
-                        </>
+                        </div>
 
                     )}
 
@@ -1025,18 +699,15 @@ export default function AdminBooks() {
 
 
             {/* =================================================
-                ADD / EDIT FORM
+                ADD BOOK MODAL
             ================================================= */}
 
             {showForm && (
 
                 <BookForm
-                    book={editingBook}
-                    onSuccess={
-                        handleFormSuccess
-                    }
-                    onCancel={
-                        handleFormCancel
+                    onSuccess={handleSuccess}
+                    onCancel={() =>
+                        setShowForm(false)
                     }
                 />
 
@@ -1052,36 +723,21 @@ export default function AdminBooks() {
 // =========================================================
 
 function BookForm({
-    book,
     onSuccess,
     onCancel,
 }) {
 
-    const isEditing =
-        Boolean(book);
-
-
     const [title, setTitle] =
-        useState(
-            book?.title || ""
-        );
-
+        useState("");
 
     const [author, setAuthor] =
-        useState(
-            book?.author || ""
-        );
-
+        useState("");
 
     const [isbn, setIsbn] =
-        useState(
-            book?.isbn || ""
-        );
-
+        useState("");
 
     const [loading, setLoading] =
         useState(false);
-
 
     const [error, setError] =
         useState("");
@@ -1120,22 +776,12 @@ function BookForm({
         }
 
 
-        if (!isbn.trim()) {
-
-            setError(
-                "ISBN is required."
-            );
-
-            return;
-        }
-
-
         try {
 
             setLoading(true);
 
 
-            const bookData = {
+            await api.books.create({
 
                 title:
                     title.trim(),
@@ -1145,23 +791,7 @@ function BookForm({
 
                 isbn:
                     isbn.trim(),
-
-            };
-
-
-            if (isEditing) {
-
-                await api.books.update(
-                    book.id,
-                    bookData
-                );
-
-            } else {
-
-                await api.books.create(
-                    bookData
-                );
-            }
+            });
 
 
             onSuccess();
@@ -1170,7 +800,7 @@ function BookForm({
 
             setError(
                 err.message ||
-                "Unable to save book."
+                "Unable to create book."
             );
 
         } finally {
@@ -1208,7 +838,7 @@ function BookForm({
                 "
             >
 
-                {/* Header */}
+                {/* HEADER */}
 
                 <div
                     className="
@@ -1228,9 +858,7 @@ function BookForm({
                                 text-[#2a1d15]
                             "
                         >
-                            {isEditing
-                                ? "Edit Book"
-                                : "Add Book"}
+                            Add Book
                         </h2>
 
 
@@ -1241,7 +869,7 @@ function BookForm({
                                 text-[#735e50]
                             "
                         >
-                            Enter the book information below.
+                            Add a new book to the library.
                         </p>
 
                     </div>
@@ -1269,7 +897,7 @@ function BookForm({
                 </div>
 
 
-                {/* Error */}
+                {/* ERROR */}
 
                 {error && (
 
@@ -1292,14 +920,12 @@ function BookForm({
                 )}
 
 
-                {/* Form */}
-
                 <form
                     onSubmit={handleSubmit}
                     className="space-y-4"
                 >
 
-                    {/* Title */}
+                    {/* TITLE */}
 
                     <div>
 
@@ -1312,11 +938,12 @@ function BookForm({
                                 text-[#463529]
                             "
                         >
-                            Title
+                            Book Title
                         </label>
 
 
                         <input
+                            type="text"
                             value={title}
                             onChange={(e) =>
                                 setTitle(
@@ -1334,19 +961,15 @@ function BookForm({
                                 px-3
                                 py-2.5
                                 text-sm
-                                text-[#2a1d15]
                                 outline-none
-                                placeholder:text-[#a8988a]
                                 focus:border-[#a8652c]
-                                focus:ring-2
-                                focus:ring-[#a8652c]/10
                             "
                         />
 
                     </div>
 
 
-                    {/* Author */}
+                    {/* AUTHOR */}
 
                     <div>
 
@@ -1364,6 +987,7 @@ function BookForm({
 
 
                         <input
+                            type="text"
                             value={author}
                             onChange={(e) =>
                                 setAuthor(
@@ -1381,12 +1005,8 @@ function BookForm({
                                 px-3
                                 py-2.5
                                 text-sm
-                                text-[#2a1d15]
                                 outline-none
-                                placeholder:text-[#a8988a]
                                 focus:border-[#a8652c]
-                                focus:ring-2
-                                focus:ring-[#a8652c]/10
                             "
                         />
 
@@ -1411,6 +1031,7 @@ function BookForm({
 
 
                         <input
+                            type="text"
                             value={isbn}
                             onChange={(e) =>
                                 setIsbn(
@@ -1428,19 +1049,15 @@ function BookForm({
                                 px-3
                                 py-2.5
                                 text-sm
-                                text-[#2a1d15]
                                 outline-none
-                                placeholder:text-[#a8988a]
                                 focus:border-[#a8652c]
-                                focus:ring-2
-                                focus:ring-[#a8652c]/10
                             "
                         />
 
                     </div>
 
 
-                    {/* Buttons */}
+                    {/* BUTTONS */}
 
                     <div
                         className="
@@ -1484,16 +1101,13 @@ function BookForm({
                                 font-medium
                                 text-white
                                 hover:bg-[#8f501e]
-                                disabled:cursor-not-allowed
                                 disabled:opacity-50
                             "
                         >
 
                             {loading
-                                ? "Saving..."
-                                : isEditing
-                                    ? "Update Book"
-                                    : "Add Book"}
+                                ? "Adding..."
+                                : "Add Book"}
 
                         </button>
 

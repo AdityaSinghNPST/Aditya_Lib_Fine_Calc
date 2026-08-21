@@ -2,18 +2,96 @@
   "id" : 1,
   "title" : "Clean Code",
   "author" : "Robert C. Martin",
-  "isbn" : "9780132350884",
-  "available" : false
+  "isbn" : "9780132350881",
+  "available" : true
 }, {
   "id" : 2,
-  "title" : "code with python",
+  "title" : "Code with Python",
   "author" : "Arav",
   "isbn" : "1234567890",
   "available" : true
 }, {
   "id" : 3,
   "title" : "Beauty and the Beast",
-  "author" : "arav ji",
+  "author" : "Arav Ji",
   "isbn" : "81623",
+  "available" : true
+}, {
+  "id" : 4,
+  "title" : "The Pragmatic Programmer",
+  "author" : "Andrew Hunt",
+  "isbn" : "9780201616224",
+  "available" : true
+}, {
+  "id" : 5,
+  "title" : "Design Patterns",
+  "author" : "Erich Gamma",
+  "isbn" : "9780201633610",
+  "available" : true
+}, {
+  "id" : 6,
+  "title" : "Java: The Complete Reference",
+  "author" : "Herbert Schildt",
+  "isbn" : "9781260440232",
+  "available" : true
+}, {
+  "id" : 7,
+  "title" : "Effective Java",
+  "author" : "Joshua Bloch",
+  "isbn" : "9780134685991",
+  "available" : true
+}, {
+  "id" : 8,
+  "title" : "Head First Java",
+  "author" : "Kathy Sierra",
+  "isbn" : "9780596009205",
+  "available" : true
+}, {
+  "id" : 9,
+  "title" : "Introduction to Algorithms",
+  "author" : "Thomas H. Cormen",
+  "isbn" : "9780262033848",
+  "available" : true
+}, {
+  "id" : 10,
+  "title" : "JavaScript: The Good Parts",
+  "author" : "Douglas Crockford",
+  "isbn" : "9780596517748",
+  "available" : true
+}, {
+  "id" : 11,
+  "title" : "You Don't Know JS",
+  "author" : "Kyle Simpson",
+  "isbn" : "9781491904244",
+  "available" : true
+}, {
+  "id" : 12,
+  "title" : "Python Crash Course",
+  "author" : "Eric Matthes",
+  "isbn" : "9781593279288",
+  "available" : true
+}, {
+  "id" : 13,
+  "title" : "Spring in Action",
+  "author" : "Craig Walls",
+  "isbn" : "9781617294945",
+  "available" : true
+}, {
+  "id" : 14,
+  "title" : "Refactoring",
+  "author" : "Martin Fowler",
+  "isbn" : "9780134757599",
+  "available" : true
+}, {
+  "id" : 15,
+  "title" : "Database System Concepts",
+  "author" : "Abraham Silberschatz",
+  "isbn" : "9780078022159",
+  "available" : true
+}, {
+  "id" : 16,
+  "title" : "harry potter",
+  "author" : "JK",
+  "isbn" : "123456789",
   "available" : true
 } ]

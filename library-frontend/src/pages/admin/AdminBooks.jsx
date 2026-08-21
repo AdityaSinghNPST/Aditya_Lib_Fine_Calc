@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 
 import {
     ArrowLeft,
+    ChevronLeft,
+    ChevronRight,
     Edit,
     Plus,
     Search,
@@ -514,15 +516,15 @@ export default function AdminBooks() {
 
     async function handleDeleteBook(book) {
 
-        const confirmed =
-            window.confirm(
-                `Are you sure you want to delete "${book.title}"?`
-            );
-
-        if (!confirmed) {
-
-            return;
-        }
+        // const confirmed =
+        //     window.confirm(
+        //         `Are you sure you want to delete "${book.title}"?`
+        //     );
+        //
+        // if (!confirmed) {
+        //
+        //     return;
+        // }
 
         try {
 
@@ -787,6 +789,7 @@ export default function AdminBooks() {
                     SUCCESS
                 ================================================= */}
 
+                {/*
                 {success && (
 
                     <div
@@ -817,6 +820,7 @@ export default function AdminBooks() {
                     </div>
 
                 )}
+                */}
 
 
                 {/* =================================================
@@ -1682,7 +1686,11 @@ export default function AdminBooks() {
                                     disabled={
                                         page === 0
                                     }
+                                    aria-label="Previous page"
                                     className="
+                                        inline-flex
+                                        items-center
+                                        gap-1
                                         rounded-lg
                                         border
                                         border-[#fdba74]
@@ -1698,6 +1706,9 @@ export default function AdminBooks() {
                                         disabled:opacity-40
                                     "
                                 >
+                                    <ChevronLeft
+                                        className="h-4 w-4"
+                                    />
                                     Previous
                                 </button>
 
@@ -1717,7 +1728,11 @@ export default function AdminBooks() {
                                         page >=
                                         totalPages - 1
                                     }
+                                    aria-label="Next page"
                                     className="
+                                        inline-flex
+                                        items-center
+                                        gap-1
                                         rounded-lg
                                         bg-[#ea580c]
                                         px-4
@@ -1732,6 +1747,9 @@ export default function AdminBooks() {
                                     "
                                 >
                                     Next
+                                    <ChevronRight
+                                        className="h-4 w-4"
+                                    />
                                 </button>
 
                             </div>

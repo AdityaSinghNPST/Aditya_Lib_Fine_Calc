@@ -829,6 +829,7 @@ export default function AdminFines() {
                     SUCCESS
                 ================================================= */}
 
+                {/*
                 {success && (
 
                     <div
@@ -857,6 +858,7 @@ export default function AdminFines() {
                     </div>
 
                 )}
+                */}
 
 
                 {/* =================================================
@@ -1250,7 +1252,7 @@ export default function AdminFines() {
 
                         {/* FILTER */}
 
-                        <select
+                        {/* <select
                             value={filter}
                             onChange={(event) =>
                                 setFilter(
@@ -1285,7 +1287,7 @@ export default function AdminFines() {
                                 Paid
                             </option>
 
-                        </select>
+                        </select> */}
 
                     </div>
 

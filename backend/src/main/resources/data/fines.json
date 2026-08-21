@@ -1,9 +1,19 @@
-[
-  {
-    "id": 1,
-    "borrowingId": 1,
-    "userId": 1,
-    "overdueDays": 1,
-    "amount": 15.0
-  }
-]
+[ {
+  "id" : 1,
+  "borrowingId" : 1,
+  "userId" : 1,
+  "overdueDays" : 1,
+  "amount" : 15.0
+}, {
+  "id" : 2,
+  "borrowingId" : 14,
+  "userId" : 4,
+  "overdueDays" : 8,
+  "amount" : 80.0
+}, {
+  "id" : 3,
+  "borrowingId" : 13,
+  "userId" : 4,
+  "overdueDays" : 8,
+  "amount" : 80.0
+} ]

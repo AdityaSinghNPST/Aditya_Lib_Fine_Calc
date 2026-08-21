@@ -352,6 +352,7 @@ export default function AdminSettings() {
                     SUCCESS MESSAGE
                 ================================================= */}
 
+                {/*
                 {success && (
 
                     <div
@@ -382,6 +383,7 @@ export default function AdminSettings() {
                     </div>
 
                 )}
+                */}
 
 
                 {/* =================================================
@@ -455,7 +457,7 @@ export default function AdminSettings() {
 
                 <div
                     className="
-                        max-w-3xl
+                        max-w-full
                         rounded-xl
                         border
                         border-[#fed7aa]
@@ -848,57 +850,7 @@ export default function AdminSettings() {
                                 INFO
                             ================================================= */}
 
-                            <div
-                                className="
-                                    rounded-lg
-                                    border
-                                    border-[#fed7aa]
-                                    bg-[#fff8f0]
-                                    px-4
-                                    py-3
-                                    text-sm
-                                    text-[#78716c]
-                                "
-                            >
-
-                                <p>
-
-                                    <span
-                                        className="
-                                            font-medium
-                                            text-[#44403c]
-                                        "
-                                    >
-                                        Example:
-                                    </span>{" "}
-
-                                    If the borrowing period is{" "}
-
-                                    <span
-                                        className="
-                                            font-medium
-                                            text-[#292524]
-                                        "
-                                    >
-                                        14 days
-                                    </span>{" "}
-
-                                    and the fine is{" "}
-
-                                    <span
-                                        className="
-                                            font-medium
-                                            text-[#292524]
-                                        "
-                                    >
-                                        ₹5 per day
-                                    </span>
-                                    , a book returned 3 days late
-                                    would have a fine of ₹15.
-
-                                </p>
-
-                            </div>
+                            
 
 
                             {/* =================================================

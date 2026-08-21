@@ -12,12 +12,9 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    // Development secret.
-    // Later this should be moved to an environment variable.
-    private static final String SECRET_KEY =
-            "AdityaLibrarySecretKeyForJwtAuthentication123456";
+    private static final String SECRET_KEY = "AdityaLibrarySecretKeyForJwtAuthentication123456";
 
-    // JWT validity: 24 hours.
+
     private static final long EXPIRATION_TIME =
             1000 * 60 * 60 * 24;
 

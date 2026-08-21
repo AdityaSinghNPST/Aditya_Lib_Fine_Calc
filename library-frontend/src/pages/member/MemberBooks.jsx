@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import {
     ArrowLeft,
     BookOpen,
+    ChevronLeft,
+    ChevronRight,
     Search,
     CheckCircle,
     AlertCircle,
@@ -304,16 +306,16 @@ export default function MemberBooks() {
         }
 
 
-        const confirmed =
-            window.confirm(
-                `Do you want to borrow "${book.title}"?`
-            );
-
-
-        if (!confirmed) {
-
-            return;
-        }
+        // const confirmed =
+        //     window.confirm(
+        //         `Do you want to borrow "${book.title}"?`
+        //     );
+        //
+        //
+        // if (!confirmed) {
+        //
+        //     return;
+        // }
 
 
         try {
@@ -388,16 +390,16 @@ export default function MemberBooks() {
         }
 
 
-        const confirmed =
-            window.confirm(
-                `Are you sure you want to return "${bookTitle}"?`
-            );
-
-
-        if (!confirmed) {
-
-            return;
-        }
+        // const confirmed =
+        //     window.confirm(
+        //         `Are you sure you want to return "${bookTitle}"?`
+        //     );
+        //
+        //
+        // if (!confirmed) {
+        //
+        //     return;
+        // }
 
 
         try {
@@ -628,6 +630,7 @@ export default function MemberBooks() {
                     SUCCESS
                 ================================================= */}
 
+                {/*
                 {success && (
 
                     <div
@@ -658,6 +661,7 @@ export default function MemberBooks() {
                     </div>
 
                 )}
+                */}
 
 
                 {/* =================================================
@@ -1406,7 +1410,11 @@ export default function MemberBooks() {
                                     disabled={
                                         page === 0
                                     }
+                                    aria-label="Previous page"
                                     className="
+                                        inline-flex
+                                        items-center
+                                        gap-1
                                         rounded-lg
                                         border
                                         border-[#fdba74]
@@ -1422,6 +1430,9 @@ export default function MemberBooks() {
                                         disabled:opacity-40
                                     "
                                 >
+                                    <ChevronLeft
+                                        className="h-4 w-4"
+                                    />
                                     Previous
                                 </button>
 
@@ -1441,7 +1452,11 @@ export default function MemberBooks() {
                                         page >=
                                         totalPages - 1
                                     }
+                                    aria-label="Next page"
                                     className="
+                                        inline-flex
+                                        items-center
+                                        gap-1
                                         rounded-lg
                                         bg-[#ea580c]
                                         px-4
@@ -1456,6 +1471,9 @@ export default function MemberBooks() {
                                     "
                                 >
                                     Next
+                                    <ChevronRight
+                                        className="h-4 w-4"
+                                    />
                                 </button>
 
                             </div>

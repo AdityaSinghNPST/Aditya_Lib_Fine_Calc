@@ -1,6 +1,7 @@
 package com.library.Aditya_Lib_Fine_Calc.book.service;
 
 import com.library.Aditya_Lib_Fine_Calc.book.model.Book;
+import com.library.Aditya_Lib_Fine_Calc.common.dto.PageResponse;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ public class BookService {
     // GET BOOKS WITH PAGINATION AND FILTERING
     // =========================================================
 
-    public List<Book> getBooks(
+    public PageResponse<Book> getBooks(
             int page,
             int size,
             String title,
@@ -102,30 +103,10 @@ public class BookService {
             }
         }
 
-        // Calculate the starting index.
-        int start =
-                page * size;
-
-        // If page is beyond available results,
-        // return an empty list.
-        if (start >= filteredBooks.size()) {
-
-            return new ArrayList<>();
-        }
-
-        // Calculate the ending index.
-        int end =
-                Math.min(
-                        start + size,
-                        filteredBooks.size()
-                );
-
-        // Return only the requested page.
-        return new ArrayList<>(
-                filteredBooks.subList(
-                        start,
-                        end
-                )
+        return PageResponse.of(
+                filteredBooks,
+                page,
+                size
         );
     }
 

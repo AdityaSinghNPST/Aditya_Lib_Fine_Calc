@@ -3,12 +3,11 @@ package com.library.Aditya_Lib_Fine_Calc.book.controller;
 import com.library.Aditya_Lib_Fine_Calc.book.model.Book;
 import com.library.Aditya_Lib_Fine_Calc.book.service.BookService;
 import com.library.Aditya_Lib_Fine_Calc.borrowing.service.BorrowingService;
+import com.library.Aditya_Lib_Fine_Calc.common.dto.PageResponse;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/books")
@@ -42,7 +41,7 @@ public class BookController {
     //
 
     @GetMapping
-    public ResponseEntity<List<Book>> getBooks(
+    public ResponseEntity<PageResponse<Book>> getBooks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String title,

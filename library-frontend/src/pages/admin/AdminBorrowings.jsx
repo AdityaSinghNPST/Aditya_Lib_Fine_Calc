@@ -177,16 +177,16 @@ export default function AdminBorrowings() {
             );
 
 
-        const confirmed =
-            window.confirm(
-                `Are you sure you want to return "${bookTitle}"?`
-            );
-
-
-        if (!confirmed) {
-
-            return;
-        }
+        // const confirmed =
+        //     window.confirm(
+        //         `Are you sure you want to return "${bookTitle}"?`
+        //     );
+        //
+        //
+        // if (!confirmed) {
+        //
+        //     return;
+        // }
 
 
         try {
@@ -720,6 +720,7 @@ export default function AdminBorrowings() {
                     SUCCESS MESSAGE
                 ================================================= */}
 
+                {/*
                 {success && (
 
                     <div
@@ -750,6 +751,7 @@ export default function AdminBorrowings() {
                     </div>
 
                 )}
+                */}
 
 
                 {/* =================================================

@@ -92,6 +92,22 @@
   "userId" : 5,
   "issueDate" : "2026-08-20",
   "dueDate" : "2026-08-30",
-  "returnDate" : null,
-  "status" : "BORROWED"
+  "returnDate" : "2026-08-21",
+  "status" : "RETURNED"
+}, {
+  "id" : 13,
+  "bookId" : 3,
+  "userId" : 4,
+  "issueDate" : "2026-08-10",
+  "dueDate" : "2026-08-13",
+  "returnDate" : "2026-08-21",
+  "status" : "RETURNED"
+}, {
+  "id" : 14,
+  "bookId" : 2,
+  "userId" : 4,
+  "issueDate" : "2026-08-10",
+  "dueDate" : "2026-08-13",
+  "returnDate" : "2026-08-21",
+  "status" : "RETURNED"
 } ]

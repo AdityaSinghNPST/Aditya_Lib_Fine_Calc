@@ -403,16 +403,16 @@ export default function MemberBorrowings() {
             );
 
 
-        const confirmed =
-            window.confirm(
-                `Are you sure you want to return "${bookTitle}"?`
-            );
-
-
-        if (!confirmed) {
-
-            return;
-        }
+        // const confirmed =
+        //     window.confirm(
+        //         `Are you sure you want to return "${bookTitle}"?`
+        //     );
+        //
+        //
+        // if (!confirmed) {
+        //
+        //     return;
+        // }
 
 
         try {
@@ -590,6 +590,7 @@ export default function MemberBorrowings() {
                     SUCCESS
                 ================================================= */}
 
+                {/*
                 {success && (
 
                     <div
@@ -618,6 +619,7 @@ export default function MemberBorrowings() {
                     </div>
 
                 )}
+                */}
 
 
                 {/* =================================================

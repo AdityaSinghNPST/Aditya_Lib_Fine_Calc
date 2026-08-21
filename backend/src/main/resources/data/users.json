@@ -28,4 +28,10 @@
   "email" : "vanshika@gmail.com",
   "password" : "$2a$10$ZI2JPoWa6GKAS17MVTkGfeiQ1wuhDRDZppao578FmqCh6RnAM320m",
   "role" : "USER"
+}, {
+  "id" : 6,
+  "name" : "Rishi",
+  "email" : "rishi@gmail.com",
+  "password" : "$2a$10$Elo5DTevmgG6XZAITgZalOlNEsWwdif/pLDh4BuHTIks/R4oXci/S",
+  "role" : "USER"
 } ]

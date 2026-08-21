@@ -410,15 +410,15 @@ export default function AdminUser() {
 
     async function handleDeleteUser(user) {
 
-        const confirmed =
-            window.confirm(
-                `Are you sure you want to delete "${user.name}"?`
-            );
-
-        if (!confirmed) {
-
-            return;
-        }
+        // const confirmed =
+        //     window.confirm(
+        //         `Are you sure you want to delete "${user.name}"?`
+        //     );
+        //
+        // if (!confirmed) {
+        //
+        //     return;
+        // }
 
         try {
 
@@ -709,6 +709,7 @@ export default function AdminUser() {
                     SUCCESS MESSAGE
                 ================================================= */}
 
+                {/*
                 {success && (
 
                     <div
@@ -739,6 +740,7 @@ export default function AdminUser() {
                     </div>
 
                 )}
+                */}
 
 
                 {/* =================================================
